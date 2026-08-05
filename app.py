@@ -294,6 +294,7 @@ def app_layout():
 app = Dash(__name__, suppress_callback_exceptions=True)
 app.title = CONFIG["title"]
 app.layout = app_layout
+server = app.server
 
 # Replacement lower control strip. The original strip remains in app_layout
 # for backward compatibility and is hidden by CSS below.
