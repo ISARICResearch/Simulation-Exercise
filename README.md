@@ -1,4 +1,4 @@
-# Kajini One Health Emergency Dashboard
+# Emergency Dashboard
 
 A facilitator-controlled Plotly Dash dashboard for the Kajini One Health leadership simulation exercise.
 
