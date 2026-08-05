@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>BREAKING — FASE 2 · SIM-OMEGA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#d6112a;
+    --red-hot:#ff1f36;
+    --red-deep:#7a0515;
+    --ink:#f2f4f6;
+    --ink-dim:#b8bcc4;
+    --bg:#0a0b0d;
+    --bg-2:#13151a;
+    --amber:#ffb21a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#000;font-family:"Barlow Condensed",sans-serif;color:var(--ink);overflow:hidden}
+
+  /* ---------- 16:9 TV STAGE ---------- */
+  .stage{
+    position:fixed;inset:0;display:grid;place-items:center;background:#000;
+  }
+  .tv{
+    position:relative;width:min(100vw, calc(100vh * 16 / 9));aspect-ratio:16/9;
+    background:var(--bg);overflow:hidden;
+    box-shadow:0 0 80px rgba(214,17,42,.12), inset 0 0 120px rgba(0,0,0,.6);
+    container-type:size;
+    font-size:1cqh;
+  }
+
+  /* ---------- BACKDROP / BROADCAST BG ---------- */
+  .bg{
+    position:absolute;inset:0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(214,17,42,.12), transparent 65%),
+      radial-gradient(ellipse at 20% 80%, rgba(80,6,18,.35), transparent 60%),
+      linear-gradient(180deg,#0a0b0d 0%, #13151a 60%, #0a0b0d 100%);
+  }
+  .bg::before{
+    /* scanlines */
+    content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px);
+    mix-blend-mode:overlay;pointer-events:none;
+  }
+  .bg::after{
+    /* vignette */
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.7) 100%);
+    pointer-events:none;
+  }
+  /* moving noise */
+  .noise{
+    position:absolute;inset:0;pointer-events:none;opacity:.06;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+    animation:nz 0.6s steps(4) infinite;
+  }
+  @keyframes nz{
+    0%{transform:translate(0,0)}
+    25%{transform:translate(-2%,1%)}
+    50%{transform:translate(1%,-1%)}
+    75%{transform:translate(-1%,2%)}
+    100%{transform:translate(0,0)}
+  }
+
+  /* ---------- CAMERA / BLURRY BACKGROUND PLATE ---------- */
+  .plate{
+    position:absolute;left:0;right:0;top:0;bottom:220px;overflow:hidden;
+  }
+  .plate svg{width:100%;height:100%;display:block;filter:blur(1.2px) saturate(1.1)}
+  .bokeh{
+    position:absolute;width:14px;height:14px;border-radius:50%;
+    background:radial-gradient(circle, rgba(255,90,110,.95), rgba(214,17,42,.2) 60%, transparent 75%);
+    filter:blur(3px);opacity:.55;
+  }
+
+  /* ---------- TOP: NETWORK BUG + LIVE CORNER ---------- */
+  .topbar{
+    position:absolute;top:0;left:0;right:0;height:7.2cqh;z-index:30;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 2.2cqw;pointer-events:none;
+  }
+  .netbug{
+    display:flex;align-items:center;gap:1cqw;
+    padding:.9cqh 1.4cqw;background:rgba(10,11,13,.6);backdrop-filter:blur(4px);
+    border:1px solid rgba(255,255,255,.08);border-left:3px solid var(--red);
+  }
+  .netbug .logo{
+    width:3cqh;height:3cqh;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--red) 0%, var(--red-deep) 100%);
+    font-family:"Oswald",sans-serif;font-weight:800;color:#fff;font-size:1.7cqh;
+    letter-spacing:.02em;box-shadow:0 0 10px rgba(214,17,42,.6);
+  }
+  .netbug .txt{line-height:1}
+  .netbug .name{
+    font-family:"Oswald",sans-serif;font-size:1.7cqh;font-weight:700;letter-spacing:.22em;color:#fff;
+  }
+  .netbug .sub{
+    font-family:"JetBrains Mono",monospace;font-size:1.1cqh;color:var(--ink-dim);letter-spacing:.3em;margin-top:.4cqh;
+  }
+  .live{
+    display:flex;align-items:center;gap:1cqw;
+    padding:.9cqh 1.4cqw;background:var(--red);
+    clip-path:polygon(6% 0, 100% 0, 94% 100%, 0 100%);
+    box-shadow:0 0 24px rgba(214,17,42,.55);
+  }
+  .live .dot{width:1.2cqh;height:1.2cqh;border-radius:50%;background:#fff;animation:pulseDot 1s ease-in-out infinite}
+  .live .lbl{font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.28em;font-size:1.7cqh;color:#fff}
+  .live .clock{font-family:"JetBrains Mono",monospace;font-size:1.5cqh;font-weight:700;color:#ffd7dc;letter-spacing:.12em;margin-left:.5cqw;padding-left:.8cqw;border-left:1px solid rgba(255,255,255,.35)}
+  @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.78)}}
+
+  /* ---------- BREAKING BAR ---------- */
+  .breaking{
+    position:absolute;top:7.2cqh;left:0;right:0;height:5.7cqh;z-index:28;
+    display:flex;align-items:stretch;
+    background:linear-gradient(180deg,var(--red-hot) 0%, var(--red) 60%, var(--red-deep) 100%);
+    box-shadow:0 6px 28px rgba(214,17,42,.4), inset 0 -2px 0 rgba(0,0,0,.25);
+    overflow:hidden;
+  }
+  .breaking::before{
+    content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 14px, transparent 14px 28px);
+    opacity:.4;
+  }
+  .brk-stripe{
+    width:5cqw;background:#000;display:grid;place-items:center;
+    clip-path:polygon(0 0, 100% 0, 80% 100%, 0 100%);
+    position:relative;
+  }
+  .brk-stripe::before{
+    content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(-45deg, #ffb21a 0 6px, #000 6px 12px);
+    opacity:.95;
+  }
+  .brk-left{
+    display:flex;align-items:center;gap:1.4cqw;padding:0 2.2cqw 0 1.8cqw;position:relative;
+    clip-path:polygon(0 0, 100% 0, 95% 100%, 0 100%);
+    background:rgba(0,0,0,.18);
+  }
+  .brk-left .pulse{
+    width:1.3cqh;height:1.3cqh;border-radius:50%;background:#fff;
+    box-shadow:0 0 0 0 rgba(255,255,255,.8);animation:ring 1.3s infinite;
+  }
+  @keyframes ring{
+    0%{box-shadow:0 0 0 0 rgba(255,255,255,.9)}
+    70%{box-shadow:0 0 0 1.6cqh rgba(255,255,255,0)}
+    100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}
+  }
+  .brk-title{
+    font-family:"Oswald",sans-serif;font-weight:800;font-size:2.7cqh;letter-spacing:.34em;
+    color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.25);
+  }
+  .brk-body{
+    flex:1;display:flex;align-items:center;padding:0 2cqw;position:relative;
+    font-family:"Oswald",sans-serif;font-weight:600;font-size:1.85cqh;letter-spacing:.18em;color:#fff;
+    text-transform:uppercase;
+  }
+  .brk-body .dot-sep{display:inline-block;width:.6cqh;height:.6cqh;border-radius:50%;background:#fff;margin:0 1.2cqw;vertical-align:middle}
+  .brk-right{
+    display:flex;align-items:center;gap:1cqw;padding:0 2.2cqw;background:rgba(0,0,0,.25);
+    clip-path:polygon(5% 0, 100% 0, 100% 100%, 0 100%);
+  }
+  .brk-right .tag{
+    font-family:"JetBrains Mono",monospace;font-size:1.2cqh;letter-spacing:.28em;color:#fff;
+    padding:.4cqh .8cqw;border:1px solid rgba(255,255,255,.5);
+  }
+
+  /* ---------- LOWER THIRD ---------- */
+  .lower{
+    position:absolute;left:0;right:0;bottom:58px;z-index:26;
+    padding:0 0 0 0;
+  }
+  .l3{
+    position:relative;display:flex;align-items:stretch;
+    margin:0 36px;
+    filter:drop-shadow(0 10px 30px rgba(0,0,0,.55));
+  }
+  .l3-kicker{
+    width:210px;background:var(--red);color:#fff;
+    display:flex;flex-direction:column;justify-content:center;gap:2px;
+    padding:10px 14px 10px 22px;
+    clip-path:polygon(0 0, 100% 0, 92% 100%, 0 100%);
+    position:relative;
+  }
+  .l3-kicker::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#fff;
+  }
+  .l3-kicker .k-top{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.34em;opacity:.95}
+  .l3-kicker .k-big{font-family:"Oswald",sans-serif;font-weight:800;font-size:26px;letter-spacing:.18em;line-height:1;margin-top:2px}
+  .l3-kicker .k-sub{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.3em;opacity:.85;margin-top:4px}
+
+  .l3-main{
+    flex:1;background:linear-gradient(180deg,#0d0f12 0%, #1a1d23 100%);
+    border-top:2px solid var(--red);
+    margin-left:-20px;padding:12px 22px 12px 40px;
+    display:flex;flex-direction:column;justify-content:center;gap:8px;
+    clip-path:polygon(6% 0, 100% 0, 100% 100%, 0 100%);
+    position:relative;
+  }
+  .l3-main::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--red) 0%, var(--red) 20%, transparent 100%);
+  }
+  .headline{
+    font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.02em;
+    font-size:34px;line-height:1.02;color:#fff;text-transform:uppercase;
+    text-shadow:0 2px 10px rgba(0,0,0,.5);
+  }
+  .headline .hi{color:#fff;background:var(--red);padding:0 8px;margin:0 2px;display:inline-block;line-height:1.1}
+  .subline{
+    font-family:"Barlow Condensed",sans-serif;font-weight:500;
+    font-size:20px;letter-spacing:.04em;color:#dfe3ea;line-height:1.15;
+  }
+  .subline b{color:#fff;font-weight:700}
+
+  .l3-aside{
+    width:220px;background:#07080a;border-top:2px solid var(--red);
+    display:flex;flex-direction:column;justify-content:center;gap:6px;padding:10px 16px;
+    margin-left:-14px;
+    clip-path:polygon(8% 0, 100% 0, 100% 100%, 0 100%);
+  }
+  .l3-aside .sa{
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.28em;color:var(--red-hot);
+  }
+  .l3-aside .sb{
+    font-family:"Oswald",sans-serif;font-weight:700;font-size:18px;color:#fff;letter-spacing:.06em;
+  }
+  .l3-aside .sc{
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;color:#9fa4ad;
+  }
+  .l3-aside .bar{height:4px;background:#23262c;position:relative;margin-top:2px}
+  .l3-aside .bar i{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--red);box-shadow:0 0 8px var(--red)}
+
+  /* ---------- TICKER ---------- */
+  .ticker{
+    position:absolute;left:0;right:0;bottom:0;height:58px;z-index:27;
+    display:flex;align-items:stretch;background:#0a0b0d;
+    border-top:2px solid var(--red);
+  }
+  .tk-tag{
+    min-width:180px;background:#000;color:#fff;
+    display:flex;flex-direction:column;justify-content:center;gap:2px;
+    padding:0 22px;position:relative;
+    border-right:3px solid var(--red);
+  }
+  .tk-tag::before{
+    content:"";position:absolute;right:-3px;top:0;bottom:0;width:3px;background:var(--red);box-shadow:0 0 12px var(--red);
+  }
+  .tk-tag .t1{font-family:"Oswald",sans-serif;font-weight:800;font-size:15px;letter-spacing:.22em;color:#fff}
+  .tk-tag .t2{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.28em;color:#ff5a70;margin-top:2px}
+  .tk-track{
+    flex:1;overflow:hidden;position:relative;
+    background:linear-gradient(180deg,#12141a 0%, #0a0b0d 100%);
+  }
+  .tk-track::after,.tk-track::before{
+    content:"";position:absolute;top:0;bottom:0;width:40px;z-index:3;pointer-events:none;
+  }
+  .tk-track::before{left:0;background:linear-gradient(90deg,#0a0b0d, transparent)}
+  .tk-track::after{right:0;background:linear-gradient(-90deg,#0a0b0d, transparent)}
+  .tk-move{
+    display:flex;align-items:center;height:100%;white-space:nowrap;
+    font-family:"Oswald",sans-serif;font-weight:500;font-size:18px;letter-spacing:.06em;color:#f0f2f6;
+    animation:scroll 58s linear infinite;
+  }
+  .tk-item{padding:0 32px;display:inline-flex;align-items:center;gap:14px}
+  .tk-item .sep{
+    display:inline-block;width:10px;height:10px;border:2px solid var(--red);transform:rotate(45deg);
+    background:transparent;
+  }
+  .tk-item .cat{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.28em;
+    color:var(--red-hot);padding:3px 8px;border:1px solid var(--red);background:rgba(214,17,42,.08);
+  }
+  .tk-item.hot .cat{background:var(--red);color:#fff}
+  .tk-item b{color:#fff;font-weight:700}
+  @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+  .tk-right{
+    min-width:160px;background:#000;
+    display:flex;flex-direction:column;justify-content:center;align-items:flex-end;padding:0 18px;gap:3px;
+    border-left:1px solid rgba(255,255,255,.06);
+  }
+  .tk-right .loc{font-family:"Oswald",sans-serif;font-weight:700;font-size:13px;letter-spacing:.22em;color:#fff}
+  .tk-right .coord{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;color:#9fa4ad}
+  .tk-right .wx{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;color:#ffb21a}
+
+  /* ---------- CENTER STAGE: headline graphic ---------- */
+  .center{
+    position:absolute;left:0;right:0;top:130px;bottom:220px;z-index:8;
+    display:flex;align-items:center;justify-content:center;padding:0 80px;
+  }
+  .callout{
+    position:relative;max-width:70%;text-align:center;
+  }
+  .callout .meta{
+    display:inline-flex;gap:14px;align-items:center;padding:6px 14px;
+    background:rgba(214,17,42,.1);border:1px solid rgba(214,17,42,.4);
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.32em;color:#ff9ca8;
+    margin-bottom:18px;
+  }
+  .callout .meta .pip{width:8px;height:8px;border-radius:50%;background:var(--red-hot);box-shadow:0 0 8px var(--red-hot);animation:pulseDot 1s infinite}
+  .callout h1{
+    font-family:"Oswald",sans-serif;font-weight:800;font-size:78px;line-height:.95;letter-spacing:.01em;
+    color:#fff;text-transform:uppercase;text-wrap:balance;
+    text-shadow:0 6px 24px rgba(0,0,0,.7), 0 0 40px rgba(214,17,42,.15);
+  }
+  .callout h1 .mark{
+    background:var(--red);padding:0 10px;display:inline-block;line-height:1.08;
+    box-shadow:0 0 40px rgba(214,17,42,.5);
+  }
+  .callout .sub{
+    margin-top:18px;font-family:"Barlow Condensed",sans-serif;font-weight:500;
+    font-size:24px;letter-spacing:.05em;color:#dfe3ea;line-height:1.2;
+  }
+  .callout .sub b{color:#fff;font-weight:700}
+
+  /* source tag */
+  .src{
+    position:absolute;top:140px;right:46px;z-index:29;
+    display:flex;align-items:center;gap:10px;padding:8px 14px;
+    background:rgba(10,11,13,.72);border:1px solid rgba(255,255,255,.1);
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.28em;color:var(--ink-dim);
+  }
+  .src .sq{width:10px;height:10px;background:var(--red);box-shadow:0 0 8px var(--red)}
+  .src b{color:#fff;font-weight:500}
+
+  /* signal strength / sat */
+  .sigbar{
+    position:absolute;top:142px;left:36px;z-index:29;
+    display:flex;align-items:center;gap:10px;
+    padding:8px 14px;background:rgba(10,11,13,.72);border:1px solid rgba(255,255,255,.08);
+  }
+  .sigbar .bars{display:flex;gap:2px;align-items:flex-end;height:14px}
+  .sigbar .bars i{width:3px;background:var(--red-hot);box-shadow:0 0 4px var(--red-hot)}
+  .sigbar .bars i:nth-child(1){height:4px}
+  .sigbar .bars i:nth-child(2){height:7px}
+  .sigbar .bars i:nth-child(3){height:10px}
+  .sigbar .bars i:nth-child(4){height:13px;background:#4a4f5a;box-shadow:none}
+  .sigbar .lbl{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.28em;color:#cdd2db}
+
+  /* stat strips flanking the callout */
+  .statcol{
+    position:absolute;z-index:10;display:flex;flex-direction:column;gap:12px;
+  }
+  .statcol.left{left:46px;top:180px}
+  .statcol.right{right:46px;top:180px;align-items:flex-end}
+  .stat{
+    padding:10px 14px;background:rgba(8,9,12,.78);
+    border-left:3px solid var(--red);min-width:180px;
+    backdrop-filter:blur(3px);
+  }
+  .statcol.right .stat{border-left:none;border-right:3px solid var(--red);text-align:right}
+  .stat .k{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.3em;color:#ff8896}
+  .stat .v{font-family:"Oswald",sans-serif;font-weight:800;font-size:30px;color:#fff;line-height:1;margin-top:4px}
+  .stat .v small{font-size:14px;color:#9fa4ad;font-weight:500}
+  .stat .s{font-family:"Barlow Condensed",sans-serif;font-size:13px;letter-spacing:.06em;color:#cdd2db;margin-top:4px}
+
+  /* chyron separator strip */
+  .strip{
+    position:absolute;left:0;right:0;bottom:192px;height:4px;z-index:27;
+    background:linear-gradient(90deg, var(--red) 0%, var(--red) 40%, transparent 42%, transparent 58%, var(--red) 60%, var(--red) 100%);
+    box-shadow:0 0 16px rgba(214,17,42,.5);
+  }
+
+  /* small: feed glitch once in a while */
+  @keyframes flicker{
+    0%,96%,100%{opacity:1}
+    97%{opacity:.6}
+    98%{opacity:1}
+    99%{opacity:.3}
+  }
+  .tv{animation:flicker 7s infinite}
+
+  /* channel number badge bottom right */
+  .chan{
+    position:absolute;right:20px;top:8px;z-index:35;
+    display:flex;align-items:center;gap:8px;
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.28em;color:#b8bcc4;
+  }
+  .chan b{color:#fff}
+
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="tv" data-screen-label="Breaking News · Fase 2">
+    <div class="bg"></div>
+    <div class="noise"></div>
+
+    <!-- Blurry background plate: silhouette of hospital corridor with warning glyphs -->
+    <div class="plate">
+      <svg viewBox="0 0 1600 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bkRed" cx="50%" cy="60%" r="60%">
+            <stop offset="0%" stop-color="#3a0810" stop-opacity=".9"/>
+            <stop offset="60%" stop-color="#120306" stop-opacity=".6"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="floor" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#1a1d23"/>
+            <stop offset="1" stop-color="#07080a"/>
+          </linearGradient>
+        </defs>
+
+        <rect width="1600" height="700" fill="url(#bkRed)"/>
+        <!-- Hospital corridor perspective -->
+        <polygon points="0,260 700,260 900,260 1600,260 1600,700 0,700" fill="url(#floor)" opacity=".9"/>
+        <polygon points="700,260 900,260 820,560 780,560" fill="#0e1014"/>
+        <!-- receding ceiling lights -->
+        <g opacity=".8">
+          <rect x="790" y="265" width="20" height="4" fill="#ffd7dc" opacity=".7"/>
+          <rect x="780" y="285" width="40" height="5" fill="#ffd7dc" opacity=".55"/>
+          <rect x="765" y="310" width="70" height="6" fill="#ffd7dc" opacity=".4"/>
+          <rect x="745" y="345" width="110" height="7" fill="#ffd7dc" opacity=".28"/>
+          <rect x="715" y="390" width="170" height="8" fill="#ffd7dc" opacity=".18"/>
+        </g>
+        <!-- doors -->
+        <g fill="#13151a" stroke="#2a2d34" stroke-width="1">
+          <rect x="420" y="320" width="90" height="170"/>
+          <rect x="1090" y="320" width="90" height="170"/>
+          <rect x="260" y="300" width="70" height="190"/>
+          <rect x="1270" y="300" width="70" height="190"/>
+        </g>
+        <!-- warning symbol silhouettes -->
+        <g opacity=".15" fill="#ff1f36">
+          <path d="M250 90 L320 210 L180 210 Z" />
+          <path d="M1400 130 L1460 230 L1340 230 Z"/>
+        </g>
+        <!-- stretcher silhouette -->
+        <g transform="translate(680,470)" opacity=".4">
+          <rect x="0" y="0" width="240" height="30" rx="6" fill="#0b0d10" stroke="#ff1f36" stroke-width="1.2"/>
+          <circle cx="30" cy="40" r="10" fill="none" stroke="#ff1f36" stroke-width="1.2"/>
+          <circle cx="210" cy="40" r="10" fill="none" stroke="#ff1f36" stroke-width="1.2"/>
+        </g>
+
+        <!-- virus particle ghosts -->
+        <g fill="#ff1f36" opacity=".14">
+          <circle cx="180" cy="410" r="80"/>
+          <circle cx="1420" cy="370" r="100"/>
+        </g>
+      </svg>
+      <!-- bokeh dots -->
+      <div class="bokeh" style="left:16%;top:38%"></div>
+      <div class="bokeh" style="left:82%;top:52%;width:22px;height:22px"></div>
+      <div class="bokeh" style="left:55%;top:22%;opacity:.35"></div>
+      <div class="bokeh" style="left:30%;top:62%;opacity:.6;width:9px;height:9px"></div>
+      <div class="bokeh" style="left:70%;top:68%;opacity:.4;width:18px;height:18px"></div>
+    </div>
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="netbug">
+        <div class="logo">N</div>
+        <div class="txt">
+          <div class="name">NOTICIAS · OMEGA</div>
+          <div class="sub">CANAL 07 · COT · NACIONAL</div>
+        </div>
+      </div>
+      <div class="live">
+        <span class="dot"></span>
+        <span class="lbl">EN VIVO</span>
+        <span class="clock" id="clock">09:15:00</span>
+      </div>
+    </div>
+    <div class="chan"><span>CH</span><b>07</b><span>·</span><span>HD</span><span>·</span><b style="color:#ff5a70">SAT</b></div>
+
+    <!-- BREAKING BAR -->
+    <div class="breaking">
+      <div class="brk-stripe"></div>
+      <div class="brk-left">
+        <span class="pulse"></span>
+        <span class="brk-title">BREAKING</span>
+      </div>
+      <div class="brk-body">
+        ALERTA SANITARIA NACIONAL
+        <span class="dot-sep"></span>
+        SABANA CENTRO · CUNDINAMARCA
+        <span class="dot-sep"></span>
+        SIM-OMEGA · FASE 02 · ESCALATION
+      </div>
+      <div class="brk-right">
+        <span class="tag">ÚLTIMA HORA</span>
+        <span class="tag">SEG. 01</span>
+      </div>
+    </div>
+
+    <!-- Satellite / source indicators -->
+    <div class="sigbar">
+      <div class="bars"><i></i><i></i><i></i><i></i></div>
+      <div class="lbl">SAT · OMEGA-3 · 75%</div>
+    </div>
+    <div class="src"><span class="sq"></span>FUENTE · <b>CMD-07 / MINSALUD</b></div>
+
+    <!-- CENTER CALLOUT (full-screen alert) -->
+    <div class="center">
+      <div class="callout">
+        <div class="meta">
+          <span class="pip"></span>
+          <span>CLASIFICACIÓN ELEVADA · 09:14 COT</span>
+          <span>·</span>
+          <span>VIGILANCIA EPIDEMIOLÓGICA</span>
+        </div>
+        <h1>
+          TRANSMISIÓN <span class="mark">HUMANO → HUMANO</span><br>
+          AHORA CLASIFICADA COMO <span class="mark">PROBABLE</span>
+        </h1>
+        <div class="sub">
+          <b>Enfermera de investigación sintomática</b> tras contacto directo con paciente índice · SIM-OMEGA confirma cadenas secundarias en <b>3 clústers</b> de segundo orden
+        </div>
+      </div>
+    </div>
+
+    <!-- FLANKING STATS -->
+    <div class="statcol left">
+      <div class="stat">
+        <div class="k">CASOS CONFIRMADOS</div>
+        <div class="v">64 <small>+47 / 45M</small></div>
+        <div class="s">Sabana Centro · región</div>
+      </div>
+      <div class="stat">
+        <div class="k">FALLECIDOS</div>
+        <div class="v">04 <small>+3 / 75M</small></div>
+        <div class="s">HOSP-A · ZIPAQUIRÁ</div>
+      </div>
+    </div>
+    <div class="statcol right">
+      <div class="stat">
+        <div class="k">UCI DISPONIBLES</div>
+        <div class="v">0<small>/30</small></div>
+        <div class="s">Red regional · 100% saturada</div>
+      </div>
+      <div class="stat">
+        <div class="k">PERSONAL EXPUESTO</div>
+        <div class="v">05 <small>EN CUARENTENA</small></div>
+        <div class="s">Incluye enfermera índice</div>
+      </div>
+    </div>
+
+    <div class="strip"></div>
+
+    <!-- LOWER THIRD -->
+    <div class="lower">
+      <div class="l3">
+        <div class="l3-kicker">
+          <div class="k-top">ALERTA SANITARIA</div>
+          <div class="k-big">FASE 02</div>
+          <div class="k-sub">SIM-OMEGA · ESCALATION</div>
+        </div>
+        <div class="l3-main">
+          <div class="headline">
+            Transmisión <span class="hi">H→H</span> reclasificada a <span class="hi">PROBABLE</span> — enfermera de investigación sintomática
+          </div>
+          <div class="subline">
+            Red UCI regional al <b>0 camas disponibles</b> · la Capital <b>cierra corredores de referencia</b>
+          </div>
+        </div>
+        <div class="l3-aside">
+          <div class="sa">UCI REGIONAL</div>
+          <div class="sb">30 / 30 <span style="font-size:11px;color:var(--ink-dim);letter-spacing:.24em;font-family:'JetBrains Mono',monospace">· SATURADA</span></div>
+          <div class="sc">OCUPACIÓN 100%</div>
+          <div class="bar"><i></i></div>
+          <div class="sc" style="color:#ff5a70">CORREDOR BOGOTÁ · CERRADO</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TICKER -->
+    <div class="ticker">
+      <div class="tk-tag">
+        <div class="t1">ÚLTIMAS NOTICIAS</div>
+        <div class="t2">FEED · LIVE · 24H</div>
+      </div>
+      <div class="tk-track">
+        <div class="tk-move" id="ticker"></div>
+      </div>
+      <div class="tk-right">
+        <div class="loc">ZIPAQUIRÁ · CUND.</div>
+        <div class="coord">5°01′N · 73°58′W</div>
+        <div class="wx">12°C · NUBLADO · VIENTO 8KM/H</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Live clock starting at 09:15:00 COT
+  const clk = document.getElementById('clock');
+  const start = Date.now();
+  const pad = n => String(n).padStart(2,'0');
+  function tick(){
+    const el = Math.floor((Date.now()-start)/1000);
+    const total = 9*3600 + 15*60 + el;
+    const h = Math.floor(total/3600)%24, m = Math.floor(total/60)%60, s = total%60;
+    clk.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+  setInterval(tick,1000); tick();
+
+  // Ticker items (doubled for seamless loop)
+  const items = [
+    {cat:'HOSPITAL', hot:true, text:'<b>HOSP-B · CHÍA</b> rechaza nuevas admisiones — UCI al 100%'},
+    {cat:'SUMINISTRO', hot:true, text:'Reservas <b>EPP críticas</b> en 3 centros asistenciales — menos de 8 horas'},
+    {cat:'DESINFO', hot:false, text:'Video <b>deepfake</b> del MinSalud alcanza <b>500.000 vistas</b> — confirmado FALSO'},
+    {cat:'POLÍTICA', hot:false, text:'<b>Alcalde</b> amenaza con cierre vial <b>unilateral</b> si la red UCI no se libera'},
+    {cat:'INSTITUCIONAL', hot:true, text:'<b>NIH</b> solicita informe regional consolidado en un plazo de <b>2 horas</b>'},
+    {cat:'TRÁNSITO', hot:false, text:'Bus interdepartamental <b>BUS-INT-042</b> reporta pasajero sintomático rumbo a Bogotá'},
+    {cat:'PERSONAL', hot:true, text:'<b>5 miembros</b> del personal médico en aislamiento — enfermera índice sintomática'},
+    {cat:'ZOONOSIS', hot:false, text:'Brote porcino en <b>granja Susa</b> mantiene investigación abierta — vínculo bajo estudio'},
+  ];
+  function buildTicker(){
+    const html = items.map(it => `
+      <span class="tk-item ${it.hot?'hot':''}">
+        <span class="sep"></span>
+        <span class="cat">${it.cat}</span>
+        <span>${it.text}</span>
+      </span>
+    `).join('');
+    document.getElementById('ticker').innerHTML = html + html; // duplicate for seamless loop
+  }
+  buildTicker();
+</script>
+</body>
+</html>

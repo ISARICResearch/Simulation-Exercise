@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>MAPA FASE 1 — Sabana Centro</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1410;
+    --bg-2:#0d1b16;
+    --grid:#133025;
+    --grid-2:#0f241c;
+    --ink:#c8e6d2;
+    --ink-dim:#6a8a78;
+    --ink-faint:#3a5a48;
+    --amber:#f4b63a;
+    --red:#ff4040;
+    --red-dim:#8a1a1a;
+    --orange:#ff8c24;
+    --yellow:#ffe24a;
+    --green:#3fe08a;
+    --green-dim:#1f6a42;
+    --cyan:#4fd1c5;
+    --panel:#0b1a14;
+    --panel-line:#1f3e30;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);font-family:"JetBrains Mono",ui-monospace,monospace;overflow:hidden}
+  body{
+    background:
+      radial-gradient(ellipse at 30% 20%, #0f2419 0%, #07100c 70%),
+      #07100c;
+  }
+
+  /* scanlines + vignette */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+    background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,0.18) 2px 3px);
+    mix-blend-mode:multiply;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:51;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  .screen{
+    position:relative;width:100vw;height:100vh;display:grid;
+    grid-template-rows:64px 1fr 36px;
+    grid-template-columns:1fr 420px;
+    grid-template-areas:
+      "top top"
+      "map side"
+      "foot foot";
+  }
+
+  /* ───────── TOP BANNER ───────── */
+  .top{
+    grid-area:top;
+    border-bottom:1px solid var(--panel-line);
+    background:linear-gradient(180deg,#0c1e17 0%, #081610 100%);
+    display:flex;align-items:stretch;
+    font-family:"Barlow Condensed",sans-serif;
+    letter-spacing:.08em;
+  }
+  .top .brand{
+    display:flex;align-items:center;gap:14px;padding:0 22px;
+    border-right:1px solid var(--panel-line);
+    min-width:360px;
+  }
+  .brand .sigil{
+    width:34px;height:34px;border:1.5px solid var(--green);border-radius:50%;
+    display:grid;place-items:center;color:var(--green);font-weight:800;
+    box-shadow:0 0 12px rgba(63,224,138,.25) inset;font-size:14px;
+  }
+  .brand .t1{font-weight:700;font-size:20px;color:var(--ink);letter-spacing:.12em}
+  .brand .t2{font-size:11px;color:var(--ink-dim);letter-spacing:.24em;margin-top:-2px;font-family:"JetBrains Mono",monospace}
+
+  .top .title{flex:1;display:flex;align-items:center;justify-content:center;gap:28px;font-size:18px;font-weight:600}
+  .title .bar{width:1px;height:22px;background:var(--panel-line)}
+  .title .phase{color:var(--amber);letter-spacing:.2em;font-weight:700}
+  .title .phase::before{content:"◆ ";color:var(--amber)}
+  .title .region{color:var(--ink);letter-spacing:.18em}
+  .title .clock{color:var(--green);font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:700;letter-spacing:.1em}
+
+  .top .stat{
+    display:flex;align-items:center;gap:10px;padding:0 22px;
+    border-left:1px solid var(--panel-line);font-size:12px;color:var(--ink-dim);letter-spacing:.18em;
+  }
+  .stat .dot{width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1.4s infinite}
+  .stat .lbl{color:var(--ink)}
+  @keyframes blink{0%,60%{opacity:1}70%,100%{opacity:.25}}
+
+  /* ───────── MAP ───────── */
+  .map{
+    grid-area:map;position:relative;overflow:hidden;
+    background:
+      linear-gradient(180deg, #08140e 0%, #0a1b14 100%);
+  }
+  .map > svg.basemap{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  /* corner brackets over map */
+  .brackets{position:absolute;inset:14px;pointer-events:none;z-index:5}
+  .brackets span{position:absolute;width:22px;height:22px;border:2px solid var(--green-dim)}
+  .brackets .tl{top:0;left:0;border-right:none;border-bottom:none}
+  .brackets .tr{top:0;right:0;border-left:none;border-bottom:none}
+  .brackets .bl{bottom:0;left:0;border-right:none;border-top:none}
+  .brackets .br{bottom:0;right:0;border-left:none;border-top:none}
+
+  /* Mini-legends floating over map */
+  .legend{
+    position:absolute;left:22px;bottom:22px;z-index:6;
+    background:rgba(8,18,13,.85);border:1px solid var(--panel-line);
+    padding:12px 14px;font-size:11px;letter-spacing:.14em;min-width:240px;
+  }
+  .legend .lg-title{color:var(--amber);font-weight:700;margin-bottom:8px;letter-spacing:.22em}
+  .legend .row{display:flex;align-items:center;gap:10px;margin:4px 0;color:var(--ink-dim)}
+  .legend .row b{color:var(--ink);font-weight:500}
+  .sw{width:18px;height:3px;display:inline-block}
+  .sw-g{background:var(--green);box-shadow:0 0 6px var(--green)}
+  .sw-y{background:var(--yellow)}
+  .sw-o{background:var(--orange)}
+  .sw-r{background:var(--red)}
+  .chip{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .chip.red{background:var(--red);box-shadow:0 0 8px var(--red)}
+  .chip.ora{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+  .chip.yel{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+
+  /* Coordinate readout */
+  .coord{
+    position:absolute;right:22px;top:22px;z-index:6;
+    font-size:11px;color:var(--ink-dim);letter-spacing:.18em;text-align:right;
+  }
+  .coord b{color:var(--green)}
+
+  /* Compass */
+  .compass{
+    position:absolute;right:22px;bottom:22px;z-index:6;
+    width:78px;height:78px;
+  }
+
+  /* ───────── SIDE PANEL ───────── */
+  .side{
+    grid-area:side;border-left:1px solid var(--panel-line);
+    background:linear-gradient(180deg,#0a1913 0%, #081410 100%);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .pane{border-bottom:1px solid var(--panel-line);padding:16px 18px}
+  .pane h3{
+    margin:0 0 12px 0;font-family:"Barlow Condensed",sans-serif;
+    font-size:14px;letter-spacing:.28em;color:var(--amber);font-weight:700;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .pane h3 .tag{color:var(--ink-dim);font-size:10px;letter-spacing:.2em;font-family:"JetBrains Mono",monospace}
+
+  .grid-kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{
+    border:1px solid var(--panel-line);padding:10px 12px;background:#091711;
+    position:relative;
+  }
+  .kpi .k{font-size:10px;letter-spacing:.22em;color:var(--ink-dim);margin-bottom:6px}
+  .kpi .v{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:700;line-height:1;letter-spacing:.04em}
+  .kpi .sub{font-size:10px;letter-spacing:.18em;color:var(--ink-faint);margin-top:4px}
+  .kpi.red .v{color:var(--red)}
+  .kpi.amb .v{color:var(--amber)}
+  .kpi.ink .v{color:var(--ink)}
+  .kpi.grn .v{color:var(--green)}
+  .kpi .corner{position:absolute;top:4px;right:6px;font-size:9px;color:var(--ink-faint);letter-spacing:.16em}
+
+  .row2{display:flex;gap:10px;align-items:stretch}
+  .bar-wrap{flex:1}
+  .bar-lbl{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.18em;color:var(--ink-dim);margin-bottom:4px}
+  .bar-lbl b{color:var(--ink)}
+  .bar{height:8px;background:#0f241c;border:1px solid var(--panel-line);position:relative;overflow:hidden}
+  .bar .fill{height:100%;background:linear-gradient(90deg,var(--red),var(--orange))}
+
+  .hosp-list{display:flex;flex-direction:column;gap:8px}
+  .hosp{
+    border:1px solid var(--panel-line);padding:10px 12px;background:#091711;
+    display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  }
+  .hosp .idx{
+    width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+    font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:16px;
+    border:1.5px solid;
+  }
+  .hosp.red .idx{color:var(--red);border-color:var(--red);box-shadow:0 0 10px rgba(255,64,64,.35)}
+  .hosp.ora .idx{color:var(--orange);border-color:var(--orange);box-shadow:0 0 10px rgba(255,140,36,.25)}
+  .hosp.yel .idx{color:var(--yellow);border-color:var(--yellow);box-shadow:0 0 10px rgba(255,226,74,.2)}
+  .hosp .name{font-size:12px;letter-spacing:.12em;color:var(--ink);font-weight:600}
+  .hosp .loc{font-size:10px;letter-spacing:.2em;color:var(--ink-dim);margin-top:2px}
+  .hosp .icu{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:700;text-align:right}
+  .hosp.red .icu{color:var(--red)}
+  .hosp.ora .icu{color:var(--orange)}
+  .hosp.yel .icu{color:var(--yellow)}
+  .hosp .icu small{display:block;font-size:9px;letter-spacing:.2em;color:var(--ink-faint);font-family:"JetBrains Mono",monospace;font-weight:400;margin-top:1px}
+
+  .alerts{display:flex;flex-direction:column;gap:6px}
+  .alert{display:grid;grid-template-columns:60px 1fr auto;gap:8px;font-size:11px;letter-spacing:.08em;padding:6px 0;border-bottom:1px dashed var(--panel-line)}
+  .alert:last-child{border:none}
+  .alert .t{color:var(--ink-faint);font-size:10px}
+  .alert .msg{color:var(--ink)}
+  .alert .sev{font-size:9px;letter-spacing:.2em;padding:2px 6px;border:1px solid;height:fit-content}
+  .alert .sev.c{color:var(--red);border-color:var(--red)}
+  .alert .sev.w{color:var(--orange);border-color:var(--orange)}
+  .alert .sev.i{color:var(--cyan);border-color:var(--cyan)}
+
+  .hh{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;
+    border:1px dashed var(--amber);color:var(--amber);font-size:11px;letter-spacing:.2em;
+    background:rgba(244,182,58,.05);
+  }
+  .hh .pip{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber);animation:blink 1.6s infinite}
+
+  /* ───────── FOOTER ───────── */
+  .foot{
+    grid-area:foot;border-top:1px solid var(--panel-line);
+    display:flex;align-items:center;font-size:10px;letter-spacing:.22em;color:var(--ink-dim);
+    background:#081410;
+  }
+  .foot .seg{padding:0 16px;height:100%;display:flex;align-items:center;border-right:1px solid var(--panel-line)}
+  .foot .seg b{color:var(--ink);margin-left:8px}
+  .foot .spacer{flex:1}
+  .foot .seg.blink b{color:var(--green)}
+
+  /* SVG styles */
+  .city-dot{fill:var(--ink-dim)}
+  .city-label{fill:var(--ink);font-family:"Barlow Condensed",sans-serif;font-size:13px;letter-spacing:.24em;font-weight:600}
+  .city-sub{fill:var(--ink-faint);font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em}
+  .road{fill:none;stroke:var(--green);stroke-width:2;filter:drop-shadow(0 0 4px rgba(63,224,138,.35))}
+  .road-sec{fill:none;stroke:var(--green-dim);stroke-width:1.2;stroke-dasharray:4 4;opacity:.65}
+  .river{fill:none;stroke:#1d4a6a;stroke-width:1.3;opacity:.55}
+  .terrain{fill:none;stroke:var(--grid-2);stroke-width:.8}
+
+  .hosp-mk .ring{fill:none;stroke-width:2}
+  .hosp-mk .ring.pulse{animation:pulse 2.2s infinite ease-out;transform-origin:center;transform-box:fill-box}
+  @keyframes pulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(2.4);opacity:0}}
+  .hosp-mk .core{stroke:#02130c;stroke-width:1.5}
+  .hosp-mk .cross{stroke:#02130c;stroke-width:2.2;stroke-linecap:square}
+  .hosp-label{fill:var(--ink);font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:700;letter-spacing:.16em}
+  .hosp-meta{fill:var(--ink-dim);font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.2em}
+
+  .bio circle{fill:#1a0a0a;stroke:var(--amber);stroke-width:1.5}
+  .bio .glyph{fill:var(--amber)}
+  .bio-label{fill:var(--amber);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;font-weight:700}
+  .bio .pulse{fill:none;stroke:var(--amber);stroke-width:1;animation:pulse 2.6s infinite ease-out;transform-origin:center;transform-box:fill-box}
+
+  .grid-line{stroke:var(--grid-2);stroke-width:.5}
+
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- ─── TOP BANNER ─── -->
+  <header class="top">
+    <div class="brand">
+      <div class="sigil">Ω</div>
+      <div>
+        <div class="t1">OMEGA // SIM</div>
+        <div class="t2">EMERGENCY OPS · v1.0</div>
+      </div>
+    </div>
+    <div class="title">
+      <span class="region">SABANA CENTRO — REGIONAL HEALTH NETWORK</span>
+      <span class="bar"></span>
+      <span class="phase">SIMULATION STATUS: PHASE 1</span>
+      <span class="bar"></span>
+      <span class="clock" id="clock">08:00:00</span>
+    </div>
+    <div class="stat">
+      <span class="dot"></span>
+      <span class="lbl">LIVE</span>
+      <span style="opacity:.6">· D+00</span>
+    </div>
+  </header>
+
+  <!-- ─── MAP ─── -->
+  <section class="map">
+    <svg class="basemap" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <pattern id="grid" x="0" y="0" width="70" height="70" patternUnits="userSpaceOnUse">
+          <path d="M 70 0 L 0 0 0 70" class="grid-line"/>
+        </pattern>
+        <pattern id="gridLg" x="0" y="0" width="350" height="350" patternUnits="userSpaceOnUse">
+          <path d="M 350 0 L 0 0 0 350" stroke="#1a3a2c" stroke-width="1" fill="none"/>
+        </pattern>
+        <radialGradient id="glowR" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ff4040" stop-opacity=".55"/>
+          <stop offset="100%" stop-color="#ff4040" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glowO" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ff8c24" stop-opacity=".45"/>
+          <stop offset="100%" stop-color="#ff8c24" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glowY" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffe24a" stop-opacity=".35"/>
+          <stop offset="100%" stop-color="#ffe24a" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glowA" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#f4b63a" stop-opacity=".4"/>
+          <stop offset="100%" stop-color="#f4b63a" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <!-- base grid -->
+      <rect width="1400" height="900" fill="url(#grid)"/>
+      <rect width="1400" height="900" fill="url(#gridLg)"/>
+
+      <!-- terrain contours (abstracted savanna) -->
+      <g class="terrain" opacity=".55">
+        <path d="M 80 720 Q 320 640 520 700 T 960 660 T 1320 720"/>
+        <path d="M 60 620 Q 300 560 540 600 T 980 560 T 1340 620"/>
+        <path d="M 100 520 Q 340 470 560 500 T 1000 470 T 1360 510"/>
+        <path d="M 40 820 Q 280 770 500 800 T 960 780 T 1360 820"/>
+        <!-- hills east -->
+        <path d="M 1080 180 Q 1180 140 1260 200 T 1380 240"/>
+        <path d="M 1060 240 Q 1180 200 1280 260 T 1390 300"/>
+      </g>
+
+      <!-- rivers (Río Bogotá arc) -->
+      <g class="river">
+        <path d="M 180 820 Q 360 760 520 740 T 820 700 T 1180 640 T 1340 580" />
+        <path d="M 340 180 Q 420 260 520 320 T 700 440" opacity=".7"/>
+      </g>
+
+      <!-- region outline (rough boundary of Sabana Centro) -->
+      <path d="M 140 140 L 1260 160 L 1300 420 L 1200 780 L 260 810 L 120 520 Z"
+            fill="none" stroke="#234c3a" stroke-width="1.5" stroke-dasharray="3 6" opacity=".8"/>
+      <text x="160" y="170" class="city-sub" style="font-size:11px;letter-spacing:.3em">REGIÓN · SABANA CENTRO</text>
+
+      <!-- SECONDARY ROADS -->
+      <g>
+        <path class="road-sec" d="M 340 460 Q 500 420 640 440"/>
+        <path class="road-sec" d="M 960 350 Q 1080 420 1140 520"/>
+        <path class="road-sec" d="M 420 640 Q 560 620 700 640"/>
+        <path class="road-sec" d="M 780 200 Q 860 280 940 340"/>
+      </g>
+
+      <!-- PRIMARY ROUTES BETWEEN HOSPITALS (green = open) -->
+      <!-- A (Zipaquirá) 340,260  —  C (Cogua/Cajicá) 700,440 -->
+      <!-- A  — B (Chía) 940,600 -->
+      <!-- C  — B -->
+      <!-- C  — D (Tabio) 500,560 -->
+      <!-- B  — D -->
+      <g>
+        <path class="road" d="M 340 260 Q 520 320 700 440"/>
+        <path class="road" d="M 340 260 Q 620 480 940 600"/>
+        <path class="road" d="M 700 440 Q 820 520 940 600"/>
+        <path class="road" d="M 700 440 Q 600 500 500 560"/>
+        <path class="road" d="M 500 560 Q 720 580 940 600"/>
+      </g>
+
+      <!-- route labels -->
+      <g font-family="JetBrains Mono, monospace" font-size="9" fill="#3fe08a" letter-spacing=".16em" opacity=".85">
+        <text x="520" y="330">RT-01 · OPEN</text>
+        <text x="640" y="550">RT-02 · OPEN</text>
+        <text x="850" y="545">RT-03 · OPEN</text>
+        <text x="555" y="520">RT-04 · OPEN</text>
+        <text x="720" y="605">RT-05 · OPEN</text>
+      </g>
+
+      <!-- CITIES / NEIGHBORING -->
+      <g>
+        <circle class="city-dot" cx="1120" cy="820" r="3"/>
+        <text class="city-sub" x="1135" y="825">BOGOTÁ D.C. →</text>
+
+        <circle class="city-dot" cx="220" cy="200" r="2"/>
+        <text class="city-sub" x="230" y="205">UBATÉ →</text>
+
+        <circle class="city-dot" cx="1260" cy="280" r="2"/>
+        <text class="city-sub" x="1180" y="275">← GUASCA</text>
+      </g>
+
+      <!-- ───── BIOHAZARD OUTBREAK MARKERS ───── -->
+      <!-- Farm near Zipaquirá -->
+      <g class="bio" transform="translate(260,330)">
+        <circle class="pulse" r="14"/>
+        <circle r="18" fill="url(#glowA)" stroke="none"/>
+        <circle r="14"/>
+        <!-- biohazard glyph -->
+        <g class="glyph" transform="translate(-9,-9) scale(.9)">
+          <circle cx="10" cy="10" r="2.2" fill="#1a0a0a" stroke="#f4b63a" stroke-width="1.2"/>
+          <path d="M10 2 a 4 4 0 0 1 3.4 6 l -3.4 -1.8 z" />
+          <path d="M3.5 13 a 4 4 0 0 0 6.5 -1 l -3.2 -2 z" />
+          <path d="M16.5 13 a 4 4 0 0 1 -6.5 -1 l 3.2 -2 z" />
+        </g>
+        <text class="bio-label" x="26" y="6">GRANJA-01</text>
+        <text class="bio-label" x="26" y="20" style="font-size:8px;opacity:.8">BROTE PORCINO</text>
+      </g>
+
+      <!-- Farm near Cajicá -->
+      <g class="bio" transform="translate(780,500)">
+        <circle class="pulse" r="14"/>
+        <circle r="18" fill="url(#glowA)" stroke="none"/>
+        <circle r="14"/>
+        <g class="glyph" transform="translate(-9,-9) scale(.9)">
+          <circle cx="10" cy="10" r="2.2" fill="#1a0a0a" stroke="#f4b63a" stroke-width="1.2"/>
+          <path d="M10 2 a 4 4 0 0 1 3.4 6 l -3.4 -1.8 z" />
+          <path d="M3.5 13 a 4 4 0 0 0 6.5 -1 l -3.2 -2 z" />
+          <path d="M16.5 13 a 4 4 0 0 1 -6.5 -1 l 3.2 -2 z" />
+        </g>
+        <text class="bio-label" x="26" y="6">GRANJA-02</text>
+        <text class="bio-label" x="26" y="20" style="font-size:8px;opacity:.8">BROTE PORCINO</text>
+      </g>
+
+      <!-- ───── HOSPITALS (tactical icons) ───── -->
+
+      <!-- HOSPITAL A — Zipaquirá (RED / CRITICAL) -->
+      <g class="hosp-mk" transform="translate(340,260)">
+        <circle r="46" fill="url(#glowR)"/>
+        <circle class="ring pulse" r="20" stroke="#ff4040"/>
+        <polygon class="core" points="0,-20 17,-6 17,14 -17,14 -17,-6" fill="#ff4040"/>
+        <line class="cross" x1="-8" y1="4" x2="8" y2="4"/>
+        <line class="cross" x1="0" y1="-4" x2="0" y2="12"/>
+        <text class="hosp-label" x="-14" y="-32">HOSP-A · ZIPAQUIRÁ</text>
+        <text class="hosp-meta" x="-14" y="-46">CRÍTICO · UCI 1/8</text>
+      </g>
+
+      <!-- HOSPITAL B — Chía (ORANGE) -->
+      <g class="hosp-mk" transform="translate(940,600)">
+        <circle r="42" fill="url(#glowO)"/>
+        <circle class="ring pulse" r="18" stroke="#ff8c24" style="animation-delay:.4s"/>
+        <polygon class="core" points="0,-18 15,-5 15,13 -15,13 -15,-5" fill="#ff8c24"/>
+        <line class="cross" x1="-7" y1="4" x2="7" y2="4"/>
+        <line class="cross" x1="0" y1="-3" x2="0" y2="11"/>
+        <text class="hosp-label" x="22" y="0">HOSP-B · CHÍA</text>
+        <text class="hosp-meta" x="22" y="16">ALERTA · UCI 1/10</text>
+      </g>
+
+      <!-- HOSPITAL C — Cogua/Cajicá (ORANGE) -->
+      <g class="hosp-mk" transform="translate(700,440)">
+        <circle r="42" fill="url(#glowO)"/>
+        <circle class="ring pulse" r="18" stroke="#ff8c24" style="animation-delay:.8s"/>
+        <polygon class="core" points="0,-18 15,-5 15,13 -15,13 -15,-5" fill="#ff8c24"/>
+        <line class="cross" x1="-7" y1="4" x2="7" y2="4"/>
+        <line class="cross" x1="0" y1="-3" x2="0" y2="11"/>
+        <text class="hosp-label" x="22" y="-6">HOSP-C · COGUA/CAJICÁ</text>
+        <text class="hosp-meta" x="22" y="10">ALERTA · UCI 1/7</text>
+      </g>
+
+      <!-- HOSPITAL D — Tabio (YELLOW, no ICU) -->
+      <g class="hosp-mk" transform="translate(500,560)">
+        <circle r="38" fill="url(#glowY)"/>
+        <circle class="ring pulse" r="16" stroke="#ffe24a" style="animation-delay:1.2s"/>
+        <polygon class="core" points="0,-16 13,-4 13,12 -13,12 -13,-4" fill="#ffe24a"/>
+        <line class="cross" x1="-6" y1="4" x2="6" y2="4"/>
+        <line class="cross" x1="0" y1="-2" x2="0" y2="10"/>
+        <text class="hosp-label" x="-30" y="32">HOSP-D · TABIO</text>
+        <text class="hosp-meta" x="-30" y="46">VIGILANCIA · UCI 0/5</text>
+      </g>
+
+      <!-- scale bar -->
+      <g transform="translate(1160,860)">
+        <line x1="0" y1="0" x2="120" y2="0" stroke="#6a8a78" stroke-width="1.5"/>
+        <line x1="0" y1="-4" x2="0" y2="4" stroke="#6a8a78" stroke-width="1.5"/>
+        <line x1="60" y1="-3" x2="60" y2="3" stroke="#6a8a78" stroke-width="1"/>
+        <line x1="120" y1="-4" x2="120" y2="4" stroke="#6a8a78" stroke-width="1.5"/>
+        <text x="0" y="16" fill="#6a8a78" font-family="JetBrains Mono,monospace" font-size="9" letter-spacing=".18em">0</text>
+        <text x="55" y="16" fill="#6a8a78" font-family="JetBrains Mono,monospace" font-size="9" letter-spacing=".18em">5</text>
+        <text x="110" y="16" fill="#6a8a78" font-family="JetBrains Mono,monospace" font-size="9" letter-spacing=".18em">10 KM</text>
+      </g>
+
+    </svg>
+
+    <div class="brackets"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="lg-title">LEYENDA TÁCTICA</div>
+      <div class="row"><span class="chip red"></span><b>HOSPITAL · CRÍTICO</b></div>
+      <div class="row"><span class="chip ora"></span><b>HOSPITAL · ALERTA</b></div>
+      <div class="row"><span class="chip yel"></span><b>HOSPITAL · VIGILANCIA</b></div>
+      <div class="row" style="margin-top:8px"><span class="sw sw-g"></span><b>RUTA ABIERTA</b></div>
+      <div class="row"><span style="width:18px;height:2px;background:repeating-linear-gradient(90deg,var(--green-dim) 0 4px,transparent 4px 8px);display:inline-block"></span><b>RUTA SECUNDARIA</b></div>
+      <div class="row"><span style="width:16px;height:16px;border:1px solid var(--amber);border-radius:50%;display:inline-block;position:relative">
+        <span style="position:absolute;inset:3px;background:var(--amber);border-radius:50%;opacity:.7"></span>
+      </span><b>BROTE ANIMAL</b></div>
+    </div>
+
+    <!-- Coord readout -->
+    <div class="coord">
+      GRID: <b>5N-04W</b> · LAT <b>05°01'N</b> LNG <b>73°58'W</b><br>
+      SENSOR: <b>SATCOM // OMEGA-3</b> · FEED <b>NOMINAL</b>
+    </div>
+
+    <!-- Compass -->
+    <svg class="compass" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="38" fill="none" stroke="#1f6a42" stroke-width="1"/>
+      <circle cx="50" cy="50" r="30" fill="none" stroke="#1f6a42" stroke-width="0.6" stroke-dasharray="2 4"/>
+      <polygon points="50,14 45,50 50,46 55,50" fill="#3fe08a"/>
+      <polygon points="50,86 45,50 50,54 55,50" fill="#6a8a78"/>
+      <text x="50" y="12" text-anchor="middle" fill="#c8e6d2" font-family="Barlow Condensed" font-size="12" font-weight="700">N</text>
+      <text x="50" y="96" text-anchor="middle" fill="#6a8a78" font-family="Barlow Condensed" font-size="10">S</text>
+      <text x="8" y="54" fill="#6a8a78" font-family="Barlow Condensed" font-size="10">W</text>
+      <text x="88" y="54" fill="#6a8a78" font-family="Barlow Condensed" font-size="10">E</text>
+    </svg>
+  </section>
+
+  <!-- ─── SIDE PANEL ─── -->
+  <aside class="side">
+
+    <!-- STATUS SUMMARY -->
+    <div class="pane">
+      <h3>ESTADO EPIDEMIOLÓGICO <span class="tag">T+00:00:00</span></h3>
+      <div class="grid-kpi">
+        <div class="kpi red">
+          <div class="corner">01</div>
+          <div class="k">CASOS CONFIRMADOS</div>
+          <div class="v">17</div>
+          <div class="sub">+0 EN ÚLTIMAS 6H</div>
+        </div>
+        <div class="kpi ink">
+          <div class="corner">02</div>
+          <div class="k">FALLECIDOS</div>
+          <div class="v">01</div>
+          <div class="sub">PACIENTE ÍNDICE</div>
+        </div>
+        <div class="kpi amb">
+          <div class="corner">03</div>
+          <div class="k">SOSPECHOSOS</div>
+          <div class="v">08</div>
+          <div class="sub">EN AISLAMIENTO</div>
+        </div>
+        <div class="kpi grn">
+          <div class="corner">04</div>
+          <div class="k">UCI DISPONIBLES</div>
+          <div class="v">3<span style="color:var(--ink-dim);font-size:22px">/30</span></div>
+          <div class="sub">OCUPACIÓN 90%</div>
+        </div>
+      </div>
+      <div style="margin-top:12px" class="bar-wrap">
+        <div class="bar-lbl"><span>OCUPACIÓN UCI REGIONAL</span><b>27 / 30</b></div>
+        <div class="bar"><div class="fill" style="width:90%"></div></div>
+      </div>
+    </div>
+
+    <!-- H-H transmission -->
+    <div class="pane" style="padding-top:12px;padding-bottom:12px">
+      <div class="hh">
+        <span class="pip"></span>
+        <div>
+          <div style="font-weight:700">TRANSMISIÓN H→H</div>
+          <div style="font-size:10px;letter-spacing:.22em;color:var(--ink);opacity:.85;margin-top:2px">NO CONFIRMADA · MONITOREO ACTIVO</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOSPITAL STATUS -->
+    <div class="pane">
+      <h3>RED HOSPITALARIA <span class="tag">4 NODOS</span></h3>
+      <div class="hosp-list">
+        <div class="hosp red">
+          <div class="idx">A</div>
+          <div>
+            <div class="name">HOSP-A · ZIPAQUIRÁ</div>
+            <div class="loc">CRÍTICO · SATURACIÓN 88%</div>
+          </div>
+          <div class="icu">1<small>UCI LIBRES</small></div>
+        </div>
+        <div class="hosp ora">
+          <div class="idx">B</div>
+          <div>
+            <div class="name">HOSP-B · CHÍA</div>
+            <div class="loc">ALERTA · SATURACIÓN 90%</div>
+          </div>
+          <div class="icu">1<small>UCI LIBRES</small></div>
+        </div>
+        <div class="hosp ora">
+          <div class="idx">C</div>
+          <div>
+            <div class="name">HOSP-C · COGUA/CAJICÁ</div>
+            <div class="loc">ALERTA · SATURACIÓN 86%</div>
+          </div>
+          <div class="icu">1<small>UCI LIBRES</small></div>
+        </div>
+        <div class="hosp yel">
+          <div class="idx">D</div>
+          <div>
+            <div class="name">HOSP-D · TABIO</div>
+            <div class="loc">VIGILANCIA · SIN UCI</div>
+          </div>
+          <div class="icu">0<small>UCI LIBRES</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="pane" style="flex:1;overflow:auto">
+      <h3>REGISTRO DE EVENTOS <span class="tag">LIVE</span></h3>
+      <div class="alerts">
+        <div class="alert">
+          <span class="t">07:58</span>
+          <span class="msg">Brote porcino confirmado · GRANJA-02 (Cajicá)</span>
+          <span class="sev c">CRÍT</span>
+        </div>
+        <div class="alert">
+          <span class="t">07:42</span>
+          <span class="msg">Paciente índice fallece · HOSP-A Zipaquirá</span>
+          <span class="sev c">CRÍT</span>
+        </div>
+        <div class="alert">
+          <span class="t">07:30</span>
+          <span class="msg">8 casos sospechosos derivados a aislamiento</span>
+          <span class="sev w">ALT</span>
+        </div>
+        <div class="alert">
+          <span class="t">07:15</span>
+          <span class="msg">Activación protocolo Fase 1 · Sabana Centro</span>
+          <span class="sev w">ALT</span>
+        </div>
+        <div class="alert">
+          <span class="t">06:55</span>
+          <span class="msg">INS notificado · muestras en ruta</span>
+          <span class="sev i">INFO</span>
+        </div>
+        <div class="alert">
+          <span class="t">06:30</span>
+          <span class="msg">Granja-01 reporta mortandad porcina · Zipaquirá</span>
+          <span class="sev i">INFO</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── FOOTER ─── -->
+  <footer class="foot">
+    <div class="seg">OPERADOR <b>CMD-07 · DR. RUIZ</b></div>
+    <div class="seg">CANAL <b>OMEGA-SEC/3</b></div>
+    <div class="seg">ENCRIPT <b>AES-256 · OK</b></div>
+    <div class="seg blink">SYNC <b>● NOMINAL</b></div>
+    <div class="spacer"></div>
+    <div class="seg">DOC <b>SIM-OMEGA/FASE-01/MAPA-001</b></div>
+    <div class="seg">CLASIFICACIÓN <b style="color:var(--amber)">EJERCICIO · NO OPERACIONAL</b></div>
+  </footer>
+
+</div>
+
+<script>
+  // tick simulated clock forward from 08:00
+  const clk = document.getElementById('clock');
+  const start = Date.now();
+  function pad(n){return String(n).padStart(2,'0')}
+  function tick(){
+    const el = (Date.now()-start)/1000;
+    const h = 8, m = Math.floor(el/60)%60, s = Math.floor(el)%60;
+    clk.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+  setInterval(tick, 1000);
+</script>
+</body>
+</html>

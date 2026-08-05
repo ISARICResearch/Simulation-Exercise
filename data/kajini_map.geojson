@@ -1,0 +1,12 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","id":"northern_highlands","properties":{"region_id":"northern_highlands","name":"Northern Highlands","role":"Cattle and upland communities"},"geometry":{"type":"Polygon","coordinates":[[[-2.3,2.1],[-1.0,2.5],[0.2,2.3],[1.2,2.7],[2.4,2.3],[3.0,3.6],[2.5,4.8],[1.2,5.4],[-0.2,5.0],[-1.5,5.3],[-2.6,4.2],[-2.9,3.0],[-2.3,2.1]]]}},
+    {"type":"Feature","id":"western_farms","properties":{"region_id":"western_farms","name":"Western Farms","role":"Farmer cooperation and surveillance"},"geometry":{"type":"Polygon","coordinates":[[[-5.0,-0.8],[-4.2,-1.5],[-3.0,-1.2],[-2.0,-1.7],[-1.4,-0.9],[-1.6,0.3],[-2.3,1.5],[-2.3,2.1],[-2.9,3.0],[-4.1,2.0],[-4.8,0.9],[-5.0,-0.8]]]}},
+    {"type":"Feature","id":"central_capital","properties":{"region_id":"central_capital","name":"Central Capital","role":"Government and national laboratory"},"geometry":{"type":"Polygon","coordinates":[[[-1.6,0.3],[-0.7,0.0],[0.2,0.3],[1.1,-0.1],[1.8,0.6],[1.6,1.7],[1.2,2.7],[0.2,2.3],[-1.0,2.5],[-2.3,2.1],[-2.3,1.5],[-1.6,0.3]]]}},
+    {"type":"Feature","id":"eastern_corridor","properties":{"region_id":"eastern_corridor","name":"Eastern Corridor","role":"Hospitals, transport and trade"},"geometry":{"type":"Polygon","coordinates":[[[1.8,0.6],[2.8,0.2],[3.8,0.5],[4.9,1.2],[5.2,2.5],[4.5,3.4],[3.0,3.6],[2.4,2.3],[1.2,2.7],[1.6,1.7],[1.8,0.6]]]}},
+    {"type":"Feature","id":"lakeside_communities","properties":{"region_id":"lakeside_communities","name":"Lakeside Communities","role":"Dense communities and RCCE pressure"},"geometry":{"type":"Polygon","coordinates":[[[-1.4,-0.9],[-0.4,-1.3],[0.6,-1.0],[1.1,-0.1],[0.2,0.3],[-0.7,0.0],[-1.6,0.3],[-1.4,-0.9]]]}},
+    {"type":"Feature","id":"southern_plains","properties":{"region_id":"southern_plains","name":"Southern Plains","role":"Livelihoods and food security"},"geometry":{"type":"Polygon","coordinates":[[[-3.0,-1.2],[-2.0,-1.7],[-1.4,-0.9],[-0.4,-1.3],[0.6,-1.0],[1.5,-1.7],[2.2,-2.8],[1.5,-4.1],[0.3,-4.7],[-1.0,-4.3],[-2.3,-3.6],[-3.2,-2.5],[-3.0,-1.2]]]}},
+    {"type":"Feature","id":"southern_borderlands","properties":{"region_id":"southern_borderlands","name":"Southern Borderlands","role":"International movement and screening"},"geometry":{"type":"Polygon","coordinates":[[[1.5,-1.7],[2.5,-1.3],[3.7,-1.6],[4.6,-2.4],[4.8,-3.4],[4.1,-4.2],[2.9,-4.7],[1.5,-4.1],[2.2,-2.8],[1.5,-1.7]]]}}
+  ]
+}
