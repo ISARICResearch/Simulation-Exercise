@@ -34,10 +34,15 @@ CONFIG = {
     "response": [("Community trust", 1), ("Coordination quality", 1), ("International confidence", 0)],
     "pressure": [("Misinformation / media", 2), ("Political pressure", 2), ("Resource pressure", 2)],
 }
-SIMULATION_DAYS = 30
-UPDATE_DAYS = [0, 10, 20, 30]
+SIMULATION_DAYS = 40
+UPDATE_FRACTIONS = [0.0, 1/3, 2/3, 1.0]
+UPDATE_DAYS = [round(SIMULATION_DAYS * fraction) for fraction in UPDATE_FRACTIONS]
 # USER-EDITABLE SIMULATION SPEED: milliseconds per simulated day.
 DAY_INTERVAL_MS = 1_000
+# Optional facilitator pauses. Disabled for the current slider-led workflow.
+ENABLE_STAGE_PAUSES = False
+PAUSE_FRACTIONS = [1/3, 2/3, 1.0]
+PAUSE_DAYS = [round(SIMULATION_DAYS * fraction) for fraction in PAUSE_FRACTIONS]
 
 HEALTH_HISTORY = {
     "days": UPDATE_DAYS,
@@ -60,7 +65,7 @@ REGION_CASES = {
 REGION_LABELS = {
     "northern_highlands": "AREA 1",
     "western_farms": "AREA 2",
-    "central_capital": "AREA 3",
+    "central_capital": "DASS",
     "eastern_corridor": "AREA 4",
     "lakeside_communities": "AREA 5",
     "southern_plains": "AREA 6",
@@ -109,6 +114,8 @@ DECISION_EFFECTS = {
 CURRENT_OUTCOME_FACTOR = 0.0
 CURRENT_FACTORS = {"Community trust": 0, "Coordination quality": 0, "Healthcare-worker safety": 0, "Misinformation pressure": 0, "Resource pressure": 0}
 CONTEXT_HISTORY = {name: [0, 0, 0, 0] for name in CURRENT_FACTORS}
+SLIDER_FACTORS = ["Coordination effectiveness", "Healthcare-worker safety considered", "Clinical research initiative", "Cattle health considered", "Community trust", "Misinformation control", "Resource management", "Transparent political decision making", "International confidence"]
+CURRENT_SLIDER_FACTORS = {name: 0 for name in SLIDER_FACTORS}
 
 COLORS = {"green": "#22c55e", "amber": "#f59e0b", "red": "#ef4444", "grey": "#94a3b8"}
 
@@ -124,15 +131,44 @@ def health_table():
 
 
 def value_at_day(key, day):
+    day = min(max(day, 0), SIMULATION_DAYS)
+    context_score = sum(CURRENT_SLIDER_FACTORS.values()) / len(CURRENT_SLIDER_FACTORS)
+
+    # USER-EDITABLE STYLISED EPIDEMIC CURVE
+    # This deliberately mimics an epidemic shape without using R0,
+    # incubation periods or claiming scientific epidemiological accuracy.
+    def daily_epidemic_cases(target_day):
+        onset = 1 / (1 + math.exp(-(target_day - 5) / 1.8))
+        peak = 48 * math.exp(-0.5 * ((target_day - 18) / 8) ** 2)
+        growth_adjustment = 1 - 0.45 * context_score
+        return max(0, 2 + onset * peak * growth_adjustment)
+
+    if key == "daily_cases":
+        return round(daily_epidemic_cases(day), 1)
+    if key == "human_deaths":
+        cumulative_cases = sum(daily_epidemic_cases(d) for d in range(1, int(day) + 1))
+        mortality = max(0.04, 0.12 - 0.04 * context_score)
+        return round(cumulative_cases * mortality, 1)
+    if key == "cattle_deaths":
+        daily_cattle = lambda target_day: 1 + 0.22 * daily_epidemic_cases(target_day) * (1 - 0.25 * context_score)
+        return round(sum(daily_cattle(d) for d in range(1, int(day) + 1)), 1)
+    if key == "hospital_capacity":
+        # Hospital pressure follows current severe-case pressure, not the
+        # cumulative case total, so it can rise and later decline.
+        current_cases = daily_epidemic_cases(day)
+        capacity = 25 + current_cases * 1.15 - 12 * context_score
+        return round(max(0, min(100, capacity)), 1)
+
     value = float(pd.Series(HEALTH_HISTORY[key], index=HEALTH_HISTORY["days"]).reindex(range(0, SIMULATION_DAYS + 1)).interpolate().loc[min(day, SIMULATION_DAYS)])
     # Transparent consequence adjustment: positive decisions reduce pressure;
     # negative decisions increase it. This is an exercise model, not a forecast.
+    slider_score = sum(CURRENT_SLIDER_FACTORS.values()) / len(CURRENT_SLIDER_FACTORS)
     if key in {"daily_cases", "cattle_deaths"}:
-        value *= 1 - 0.10 * CURRENT_OUTCOME_FACTOR
+        value *= 1 - 0.10 * slider_score
     elif key == "human_deaths":
-        value *= 1 - 0.08 * CURRENT_OUTCOME_FACTOR
+        value *= 1 - 0.08 * slider_score
     elif key == "hospital_capacity":
-        value -= 8 * CURRENT_OUTCOME_FACTOR
+        value -= 8 * slider_score
     return round(value, 1)
 
 
@@ -142,6 +178,10 @@ def daily_cases_chart(day=0):
     fig = go.Figure(go.Bar(name="Daily cases", x=days, y=cases, marker_color="#f59e0b", hovertemplate="Day %{x}<br>Daily cases: %{y:.0f}<extra></extra>"))
     fig.update_layout(title={"text": "Daily human cases", "font": {"size": 13}}, height=215, margin=dict(l=10, r=10, t=38, b=35), xaxis={"title":"Simulation day", "range":[0.5, SIMULATION_DAYS + 0.5], "dtick":5, "tickprefix":"Day ", "gridcolor":"#26344d"}, yaxis={"title":"New cases", "gridcolor":"#26344d"}, paper_bgcolor="#101827", plot_bgcolor="#101827", font_color="#dbeafe", showlegend=False)
     return fig
+
+
+def cumulative_cases(day=0):
+    return round(sum(value_at_day("daily_cases", d) for d in range(1, max(int(day), 1) + 1)))
 
 
 def deaths_chart(day=0):
@@ -176,8 +216,8 @@ def capacity_gauge(day=0):
 
 
 def context_chart(day=0):
-    labels = list(CURRENT_FACTORS)
-    scores = [CURRENT_FACTORS[label] for label in labels]
+    labels = list(CURRENT_SLIDER_FACTORS)
+    scores = [CURRENT_SLIDER_FACTORS[label] for label in labels]
     colors = ["#22c55e" if score >= 0 else "#ef4444" for score in scores]
     fig = go.Figure(go.Bar(x=scores, y=labels, orientation="h", marker_color=colors, customdata=["Improving" if s > 0 else "Deteriorating" if s < 0 else "Stable" for s in scores], hovertemplate="%{y}<br>Status: %{customdata}<extra></extra>"))
     fig.update_layout(title={"text":"Response context", "font":{"size":13}}, height=330, margin=dict(l=10, r=10, t=55, b=35), xaxis={"range":[-2,2], "tickvals":[-2,0,2], "ticktext":["Negative", "Neutral", "Positive"], "zeroline":True, "zerolinecolor":"#f8fafc", "gridcolor":"#26344d"}, yaxis={"autorange":"reversed", "tickfont":{"size":10}}, paper_bgcolor="#101827", plot_bgcolor="#101827", font_color="#dbeafe", showlegend=False)
@@ -266,25 +306,23 @@ def map_figure(day=0):
     label_lats = [REGION_CENTROIDS[region][1] for region in locations]
     fig.add_trace(go.Scattermap(name="Area labels", lon=label_lons, lat=label_lats, mode="text", text=[REGION_LABELS[region] for region in locations], textfont={"size":12, "color":"#ffffff"}, hoverinfo="skip", showlegend=False))
     response_sites = [
-        ("National laboratory", 0.2, 1.0, 0),
-        ("Regional hospital A", 3.1, 1.3, 4),
-        ("Regional hospital B", -1.9, -2.0, 8),
-        ("Regional hospital C", 2.7, -2.8, 14),
+        ("Central Government", -0.85, 1.75, 0),
+        ("NPHA", 0.55, 1.35, 0),
+        ("National laboratory", -0.65, 0.55, 0),
+        ("Dass General Hospital", 1.05, 1.75, 0),
     ]
     visible_sites = [(name, lon, lat) for name, lon, lat, appear_day in response_sites if day >= appear_day]
     if visible_sites:
-        fig.add_trace(go.Scattermap(name="Functioning response capacity", lon=[site[1] for site in visible_sites], lat=[site[2] for site in visible_sites], mode="markers+text", text=[site[0] for site in visible_sites], textposition="top center", marker={"size": 13, "color":"#A501FF", "symbol":"circle"}, hoverinfo="text"))
-    if day >= 5:
-        fig.add_trace(go.Scattermap(name="Active problems", lon=[-3.4], lat=[0.8], mode="markers+text", text=["Farmer resistance"], textposition="top center", marker={"size": 15, "color":"#ef4444"}, hoverinfo="text"))
+        fig.add_trace(go.Scattermap(name="Functioning response capacity", lon=[site[1] for site in visible_sites], lat=[site[2] for site in visible_sites], mode="markers+text", text=[site[0] for site in visible_sites], textposition="top center", marker={"size": 16, "color":"#A501FF", "symbol":"circle"}, hoverinfo="text", showlegend=False))
     # white-bg deliberately removes real-world labels, country borders and
     # attribution. Kajini is a fictional schematic map, not a geographic map.
-    fig.update_layout(map={"style": "white-bg", "center": {"lat": .2, "lon": .2}, "zoom": 5.4}, height=620, margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor="#0b1220", plot_bgcolor="#0b1220", font_color="#dbeafe", uirevision="kajini")
+    fig.update_layout(map={"style": "white-bg", "center": {"lat": .2, "lon": .2}, "zoom": 5.8}, height=850, margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor="#0b1220", plot_bgcolor="#0b1220", font_color="#dbeafe", showlegend=False, uirevision="kajini")
     return fig
 
 
 def app_layout():
     return html.Div([
-        html.Div([html.Div([html.H1(CONFIG["title"]), html.Div(CONFIG["subtitle"])], className="brand"), html.Div([html.Div("ROUND 1", id="round-label", className="phase"), html.Div("STATUS: UNSTABLE", id="overall-status", className="status")], className="header-status")], className="topbar"),
+        html.Div([html.Div([html.H1(CONFIG["title"]), html.Div(CONFIG["subtitle"])], className="brand"), html.Div([html.Div("ROUND 1", id="round-label", className="phase")], className="header-status")], className="topbar"),
         html.Div([html.Div([dcc.Graph(id="map", figure=map_figure(), config={"displayModeBar": False})], className="map-panel"), html.Div([dcc.Tabs(id="panel-tabs", value="outbreak-tab", children=[dcc.Tab(label="Outbreak & health", value="outbreak-tab", children=[html.Div([dcc.Graph(id="daily-cases-chart", figure=daily_cases_chart(), config={"displayModeBar": False})], className="card chart-card"), html.Div([dcc.Graph(id="deaths-chart", figure=deaths_chart(), config={"displayModeBar": False})], className="card chart-card"), html.Div([dcc.Graph(id="positivity-chart", figure=positivity_chart(), config={"displayModeBar": False})], className="card chart-card"), html.Div([dcc.Graph(id="cattle-chart", figure=cattle_chart(), config={"displayModeBar": False})], className="card chart-card"), html.Div([dcc.Graph(id="capacity-gauge", figure=capacity_gauge(), config={"displayModeBar": False})], className="card chart-card")]), dcc.Tab(label="Clinical data", value="clinical-tab", children=[html.Div([dcc.Graph(id="clinical-pyramid", figure=clinical_pyramid(), config={"displayModeBar": False})], className="card chart-card"), html.Div([dcc.Graph(id="symptom-chart", figure=symptom_chart(), config={"displayModeBar": False})], className="card chart-card"), html.Div([dcc.Graph(id="clinical-mortality-chart", figure=clinical_mortality_chart(), config={"displayModeBar": False})], className="card chart-card")])])], className="right-panel")], className="content"),
         #html.Div([html.Label("Simulation clock — one day every 10 seconds"), dcc.Slider(0, 30, 1, value=0, marks={0: "Start", 10: "Update 2", 20: "Update 3", 30: "Final"}, id="update-slider"), dcc.Interval(id="simulation-clock", interval=10_000, n_intervals=0)], className="controls"),
         html.Div([html.Label("Simulation clock — one day every 10 seconds"), dcc.Slider(0, SIMULATION_DAYS, 1, value=0, marks={0: "Start", 10: "Update 2", 20: "Update 3", 30: "Final"}, id="update-slider"), dcc.Interval(id="simulation-clock", interval=10_00, n_intervals=0)], className="controls"),
@@ -300,10 +338,20 @@ server = app.server
 # for backward compatibility and is hidden by CSS below.
 def enhanced_layout():
     base = app_layout()
-    tabs = base.children[1].children[1].children[0]
-    tabs.children.append(dcc.Tab(label="Context", value="context-tab", children=[html.Div([dcc.Graph(id="context-chart", figure=context_chart(), config={"displayModeBar": False})], className="card chart-card")]))
+    content = base.children[1]
+    middle_panel = content.children[1]
+    middle_panel.className = "middle-panel"
+    tabs = middle_panel.children[0]
+    tabs.children[0].children[0].children.insert(0, html.Div(id="total-cases", children="Total cases: 0", className="headline-number"))
+    context_body = html.Div([], className="context-controls")
+    for index, factor in enumerate(SLIDER_FACTORS):
+        mark_style = {"color":"#ffffff", "fontSize":"10px", "fontWeight":"400", "whiteSpace":"nowrap"}
+        context_body.children.append(html.Div([html.Div(factor, className="factor-label"), dcc.Slider(id=f"factor-slider-{index}", min=-1, max=1, step=0.5, value=0, marks={-1: {"label":"Negative", "style":mark_style}, 0: {"label":"Neutral", "style":mark_style}, 1: {"label":"Positive", "style":mark_style}}, tooltip={"placement":"bottom", "always_visible":False})], className="factor-slider"))
+    context_panel = html.Div([html.H2("Context"), context_body], className="context-panel")
+    content.children = [content.children[0], middle_panel, context_panel]
+    clock_marks = {UPDATE_DAYS[0]: "Start", UPDATE_DAYS[1]: "Update 2", UPDATE_DAYS[2]: "Update 3", UPDATE_DAYS[3]: "Final"}
     base.children.append(html.Div([
-        html.Div([html.Label("Simulation clock — one day every 10 seconds"), dcc.Slider(0, SIMULATION_DAYS, 1, value=0, marks={0: "Start", 10: "Update 2", 20: "Update 3", 30: "Final"}, id="decision-slider")], className="clock-control"),
+        html.Div([html.Label("Simulation clock — one day every 10 seconds"), dcc.Slider(0, SIMULATION_DAYS, 1, value=0, marks=clock_marks, id="decision-slider")], className="clock-control"),
             html.Div([html.Div(id="decision-question", children="The simulation will pause at each transition for a facilitator decision."), dcc.RadioItems(id="decision-choice", options=[{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}], value="positive", inline=True), html.Button("Submit decision and continue", id="decision-submit", n_clicks=0), html.Div(id="decision-status", className="decision-status")], id="decision-control", className="decision-control hidden"),
             dcc.Interval(id="decision-clock", interval=DAY_INTERVAL_MS, n_intervals=0),
     ], className="controls decision-controls"))
@@ -316,6 +364,8 @@ app.layout = enhanced_layout()
 def decision_gate(n_intervals, n_clicks, choice, day):
     triggered = ctx.triggered_id
     day = min(int(n_intervals), SIMULATION_DAYS)
+    if not ENABLE_STAGE_PAUSES:
+        return False, "", "", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
     if triggered == "decision-submit" and day in DECISION_EFFECTS:
         global CURRENT_OUTCOME_FACTOR, CURRENT_FACTORS
         for factor, effect in DECISION_EFFECTS[day][choice].items():
@@ -329,12 +379,14 @@ def decision_gate(n_intervals, n_clicks, choice, day):
     return False, "The simulation will pause at Days 10, 20 and 30 for a facilitator decision.", "Simulation running.", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
 
 
-@app.callback(Output("map", "figure"), Output("daily-cases-chart", "figure"), Output("deaths-chart", "figure"), Output("positivity-chart", "figure"), Output("cattle-chart", "figure"), Output("capacity-gauge", "figure"), Output("clinical-pyramid", "figure"), Output("symptom-chart", "figure"), Output("clinical-mortality-chart", "figure"), Output("context-chart", "figure"), Output("round-label", "children"), Output("update-slider", "value"), Input("decision-clock", "n_intervals"))
-def update_dashboard(n_intervals):
+@app.callback(Output("map", "figure"), Output("daily-cases-chart", "figure"), Output("deaths-chart", "figure"), Output("positivity-chart", "figure"), Output("cattle-chart", "figure"), Output("capacity-gauge", "figure"), Output("clinical-pyramid", "figure"), Output("symptom-chart", "figure"), Output("clinical-mortality-chart", "figure"), Output("round-label", "children"), Output("update-slider", "value"), Output("total-cases", "children"), Input("decision-clock", "n_intervals"), *[Input(f"factor-slider-{i}", "value") for i in range(len(SLIDER_FACTORS))])
+def update_dashboard(n_intervals, *factor_values):
+    for factor, value in zip(SLIDER_FACTORS, factor_values):
+        CURRENT_SLIDER_FACTORS[factor] = value or 0
     day = min(int(n_intervals), SIMULATION_DAYS)
     state = state_at_day(day)
     stage = min(day // 10 + 1, 4)
-    return (map_figure(day), daily_cases_chart(day), deaths_chart(day), positivity_chart(day), cattle_chart(day), capacity_gauge(day), clinical_pyramid(day), symptom_chart(day), clinical_mortality_chart(day), context_chart(day), f"DAY {day} — ROUND {stage}: {CONFIG['rounds'][stage-1].upper()}", day)
+    return (map_figure(day), daily_cases_chart(day), deaths_chart(day), positivity_chart(day), cattle_chart(day), capacity_gauge(day), clinical_pyramid(day), symptom_chart(day), clinical_mortality_chart(day), f"DAY {day} — ROUND {stage}: {CONFIG['rounds'][stage-1].upper()}", day, f"Total human cases: {cumulative_cases(day):,}")
 
 
 if __name__ == "__main__":

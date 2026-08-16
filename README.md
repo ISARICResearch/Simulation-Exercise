@@ -40,8 +40,7 @@ The map is a fictional operational map of Kajini with seven regions:
 
 Regions are coloured according to the scenario's regional case burden. The map also shows operational traces:
 
-- Black circles: functioning response capacity, including the national laboratory and regional hospitals
-- Red X: active problems, currently including farmer resistance
+- Black circles: functioning response capacity, including Central Government, NPHA, the national laboratory and Dass General Hospital
 
 The map is intentionally fictional and schematic. It should not be interpreted as official Kajini geography.
 
