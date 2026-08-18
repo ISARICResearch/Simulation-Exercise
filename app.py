@@ -34,7 +34,7 @@ CONFIG = {
     "response": [("Community trust", 1), ("Coordination quality", 1), ("International confidence", 0)],
     "pressure": [("Misinformation / media", 2), ("Political pressure", 2), ("Resource pressure", 2)],
 }
-SIMULATION_DAYS = 30
+SIMULATION_DAYS = 16
 UPDATE_FRACTIONS = [0.0, 0.3, 0.6, 0.8, 1.0]
 
 UPDATE_DAYS = [round(SIMULATION_DAYS * fraction) for fraction in UPDATE_FRACTIONS]
@@ -111,6 +111,8 @@ MODEL_WEIGHTS = {"trust": 0.30, "coordination": 0.25, "healthcare_safety": 0.20,
 # Starting conditions for the exercise. These values are user-editable.
 INITIAL_HUMAN_CASES = 100
 INITIAL_HUMAN_DEATHS = 10
+INITIAL_CATTLE_CASES = 1000
+CATTLE_CASE_GROWTH_FACTOR = 1.1
 
 DECISION_EFFECTS = {
     10: {"question": "How was early surveillance and healthcare-worker protection established?", "option_a": "Scenario A — Coordinated early action", "option_b": "Scenario B — Partial or fragmented action", "positive": {"Community trust": 1, "Coordination quality": 2, "Healthcare-worker safety": 1, "Misinformation pressure": -1, "Resource pressure": 0}, "negative": {"Community trust": -1, "Coordination quality": -1, "Healthcare-worker safety": -2, "Misinformation pressure": 1, "Resource pressure": 1}},
@@ -156,8 +158,8 @@ def value_at_day(key, day):
         mortality = max(0.04, 0.12 - 0.04 * context_score)
         return round(INITIAL_HUMAN_DEATHS + cumulative_cases * mortality, 1)
     if key == "cattle_deaths":
-        daily_cattle = lambda target_day: 1 + 0.22 * daily_epidemic_cases(target_day) * (1 - 0.25 * context_score)
-        return round(sum(daily_cattle(d) for d in range(1, int(day) + 1)), 1)
+        daily_cattle = lambda target_day: 1 + CATTLE_CASE_GROWTH_FACTOR * daily_epidemic_cases(target_day) * (1 - 0.25 * context_score)
+        return round(INITIAL_CATTLE_CASES + sum(daily_cattle(d) for d in range(1, int(day) + 1)), 1)
     if key == "hospital_capacity":
         # Hospital pressure follows current severe-case pressure, not the
         # cumulative case total, so it can rise and later decline.
@@ -179,10 +181,10 @@ def value_at_day(key, day):
 
 
 def daily_cases_chart(day=0):
-    days = list(range(1, max(day, 1) + 1))
-    cases = [value_at_day("daily_cases", d) for d in days]
-    fig = go.Figure(go.Bar(name="Daily cases", x=days, y=cases, marker_color="#f59e0b", hovertemplate="Day %{x}<br>Daily cases: %{y:.0f}<extra></extra>"))
-    fig.update_layout(title={"text": "Daily human cases", "font": {"size": 13}}, height=215, margin=dict(l=10, r=10, t=38, b=35), xaxis={"title":"Simulation day", "range":[0.5, SIMULATION_DAYS + 0.5], "dtick":5, "tickprefix":"Day ", "gridcolor":"#26344d"}, yaxis={"title":"New cases", "gridcolor":"#26344d"}, paper_bgcolor="#101827", plot_bgcolor="#101827", font_color="#dbeafe", showlegend=False)
+    days = list(range(0, max(day, 1) + 1))
+    cases = [cumulative_cases(d) for d in days]
+    fig = go.Figure(go.Bar(name="Total cases", x=days, y=cases, marker_color="#f59e0b", hovertemplate="Day %{x}<br>Total cases: %{y:.0f}<extra></extra>"))
+    fig.update_layout(title={"text": "Total human cases", "font": {"size": 13}}, height=215, margin=dict(l=10, r=10, t=38, b=35), xaxis={"title":"Simulation day", "range":[-0.5, SIMULATION_DAYS + 0.5], "dtick":5, "tickprefix":"Day ", "gridcolor":"#26344d"}, yaxis={"title":"Total cases", "gridcolor":"#26344d"}, paper_bgcolor="#101827", plot_bgcolor="#101827", font_color="#dbeafe", showlegend=False)
     return fig
 
 
@@ -207,10 +209,10 @@ def positivity_chart(day=0):
 
 
 def cattle_chart(day=0):
-    days = list(range(1, max(day, 1) + 1))
+    days = list(range(0, max(day, 1) + 1))
     cattle = [value_at_day("cattle_deaths", d) for d in days]
-    fig = go.Figure(go.Bar(name="Cattle deaths", x=days, y=cattle, marker_color="#a16207", hovertemplate="Day %{x}<br>Cattle deaths: %{y:.0f}<extra></extra>"))
-    fig.update_layout(title={"text": "Cattle deaths", "font": {"size": 13}}, height=190, margin=dict(l=10, r=10, t=38, b=35), xaxis={"title":"Simulation day", "range":[0.5, SIMULATION_DAYS + 0.5], "dtick":5, "tickprefix":"Day ", "gridcolor":"#26344d"}, yaxis={"title":"Deaths", "gridcolor":"#26344d"}, paper_bgcolor="#101827", plot_bgcolor="#101827", font_color="#dbeafe", showlegend=False)
+    fig = go.Figure(go.Bar(name="Cattle cases", x=days, y=cattle, marker_color="#a16207", hovertemplate="Day %{x}<br>Cattle cases: %{y:.0f}<extra></extra>"))
+    fig.update_layout(title={"text": "Cattle cases", "font": {"size": 13}}, height=190, margin=dict(l=10, r=10, t=38, b=35), xaxis={"title":"Simulation day", "range":[-0.5, SIMULATION_DAYS + 0.5], "dtick":5, "tickprefix":"Day ", "gridcolor":"#26344d"}, yaxis={"title":"Total cattle cases", "gridcolor":"#26344d"}, paper_bgcolor="#101827", plot_bgcolor="#101827", font_color="#dbeafe", showlegend=False)
     return fig
 
 
@@ -348,7 +350,7 @@ def enhanced_layout():
     base = app_layout()
     topbar = base.children[0]
     topbar.children[1].children.append(html.Button("⚙ Facilitator controls", id="facilitator-toggle", className="facilitator-toggle", n_clicks=0))
-    topbar.children[1].children.append(html.Button("Pause simulation", id="simulation-toggle", className="simulation-toggle", n_clicks=0))
+    topbar.children[1].children.append(html.Button("Continue simulation", id="simulation-toggle", className="simulation-toggle", n_clicks=0))
     content = base.children[1]
     middle_panel = content.children[1]
     middle_panel.className = "middle-panel"
@@ -368,7 +370,7 @@ def enhanced_layout():
     ], className="controls decision-controls"))
     base.children[-1].children[0].children.insert(0, html.Div(f"Simulation clock: one day every {DAY_INTERVAL_MS / 1000:g} seconds", className="clock-label"))
     base.children.append(context_panel)
-    base.children.append(dcc.Store(id="simulation-paused", data=False))
+    base.children.append(dcc.Store(id="simulation-paused", data=True))
     return base
 app.layout = enhanced_layout()
 
@@ -393,17 +395,21 @@ def toggle_simulation(n_clicks, n_intervals, currently_paused):
 def decision_gate(n_intervals, n_clicks, simulation_paused, toggle_clicks, choice, day):
     triggered = ctx.triggered_id
     day = min(int(n_intervals), SIMULATION_DAYS)
-    if simulation_paused and triggered == "simulation-toggle":
+    if simulation_paused and (triggered == "simulation-toggle" or (n_intervals == 0 and triggered == "simulation-paused")):
         return True, "", "", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
     if not ENABLE_STAGE_PAUSES:
         return False, "", "", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
+    if triggered == "decision-submit" and day in PAUSE_DAYS:
+        return False, "The stage decision has been recorded. The simulation is continuing.", f"Resumed at Day {day}.", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
+    if ENABLE_STAGE_PAUSES and day in PAUSE_DAYS and (triggered == "decision-clock" or triggered == "simulation-paused"):
+        return True, f"Stage transition reached at Day {day}.", f"Paused at Day {day}. Select Continue simulation to resume.", day, "decision-control active", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
     if triggered == "decision-submit" and day in DECISION_EFFECTS:
         global CURRENT_OUTCOME_FACTOR, CURRENT_FACTORS
         for factor, effect in DECISION_EFFECTS[day][choice].items():
             CURRENT_FACTORS[factor] = max(-2, min(2, CURRENT_FACTORS[factor] + effect))
         CURRENT_OUTCOME_FACTOR = sum(CURRENT_FACTORS.values()) / len(CURRENT_FACTORS)
         return False, "The decision has been recorded. The simulation is continuing.", f"Recorded: Scenario {choice.upper()} at Day {day}. Model factor: {CURRENT_OUTCOME_FACTOR:+.1f}", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
-    if day in DECISION_EFFECTS and triggered == "decision-clock":
+    if day in DECISION_EFFECTS and triggered == "decision-clock" and day in PAUSE_DAYS:
         return True, DECISION_EFFECTS[day]["question"], f"Paused at Day {day}. Select a scenario and submit to continue.", day, "decision-control active", [{"label":DECISION_EFFECTS[day]["option_a"], "value":"positive"}, {"label":DECISION_EFFECTS[day]["option_b"], "value":"negative"}]
     if day >= SIMULATION_DAYS:
         return True, "Simulation complete.", "Final decision state reached.", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
