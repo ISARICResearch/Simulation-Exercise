@@ -34,33 +34,35 @@ CONFIG = {
     "response": [("Community trust", 1), ("Coordination quality", 1), ("International confidence", 0)],
     "pressure": [("Misinformation / media", 2), ("Political pressure", 2), ("Resource pressure", 2)],
 }
-SIMULATION_DAYS = 40
-UPDATE_FRACTIONS = [0.0, 1/3, 2/3, 1.0]
+SIMULATION_DAYS = 30
+UPDATE_FRACTIONS = [0.0, 0.3, 0.6, 0.8, 1.0]
+
 UPDATE_DAYS = [round(SIMULATION_DAYS * fraction) for fraction in UPDATE_FRACTIONS]
 # USER-EDITABLE SIMULATION SPEED: milliseconds per simulated day.
 DAY_INTERVAL_MS = 1_000
 # Optional facilitator pauses. Disabled for the current slider-led workflow.
-ENABLE_STAGE_PAUSES = False
-PAUSE_FRACTIONS = [1/3, 2/3, 1.0]
+ENABLE_STAGE_PAUSES = True
+#PAUSE_FRACTIONS = [1/3, 2/3, 1.0]
+PAUSE_FRACTIONS = UPDATE_FRACTIONS[1:]
 PAUSE_DAYS = [round(SIMULATION_DAYS * fraction) for fraction in PAUSE_FRACTIONS]
 
 HEALTH_HISTORY = {
     "days": UPDATE_DAYS,
-    "daily_cases": [12, 28, 46, 24],
-    "human_deaths": [10, 25, 80, 120],
-    "mortality_rate": [10, 11, 16, 17],
-    "test_positivity": [8, 14, 27, 19],
-    "cattle_deaths": [200, 500, 1200, 1600],
-    "hospital_capacity": [60, 78, 91, 84],
+    "daily_cases": [12, 28, 46, 38, 24],
+    "human_deaths": [10, 25, 80, 105, 120],
+    "mortality_rate": [10, 11, 16, 17, 17],
+    "test_positivity": [8, 14, 27, 24, 19],
+    "cattle_deaths": [200, 500, 1200, 1450, 1600],
+    "hospital_capacity": [60, 78, 91, 88, 84],
 }
 REGION_CASES = {
-    "northern_highlands": [0, 3, 12, 20],
-    "western_farms": [12, 40, 75, 90],
-    "central_capital": [0, 8, 35, 70],
-    "eastern_corridor": [0, 0, 12, 32],
-    "lakeside_communities": [0, 0, 5, 18],
-    "southern_plains": [0, 0, 0, 8],
-    "southern_borderlands": [0, 0, 0, 4],
+    "northern_highlands": [0, 3, 12, 17, 20],
+    "western_farms": [12, 40, 75, 84, 90],
+    "central_capital": [0, 8, 35, 55, 70],
+    "eastern_corridor": [0, 0, 12, 23, 32],
+    "lakeside_communities": [0, 0, 5, 12, 18],
+    "southern_plains": [0, 0, 0, 4, 8],
+    "southern_borderlands": [0, 0, 0, 2, 4],
 }
 REGION_LABELS = {
     "northern_highlands": "AREA 1",
@@ -82,10 +84,10 @@ REGION_CENTROIDS = {
 }
 CLINICAL_SYMPTOMS = ["Fever", "Cough", "Fatigue", "Shortness of breath", "Vomiting", "Diarrhoea", "Confusion", "Bleeding"]
 CLINICAL_HISTORY = {
-    "symptoms": {name: [1, 12, 30, 48] for name in CLINICAL_SYMPTOMS},
-    "daily_mortality": [2, 4, 8, 12],
+    "symptoms": {name: [1, 12, 30, 40, 48] for name in CLINICAL_SYMPTOMS},
+    "daily_mortality": [2, 4, 8, 10, 12],
 }
-CLINICAL_HISTORY["symptoms"].update({"Fever": [68, 72, 70, 71], "Cough": [52, 55, 53, 54], "Fatigue": [48, 50, 49, 51], "Shortness of breath": [12, 18, 23, 22], "Vomiting": [20, 21, 19, 20], "Diarrhoea": [25, 27, 26, 27], "Confusion": [4, 6, 9, 10], "Bleeding": [1, 2, 2, 2]})
+CLINICAL_HISTORY["symptoms"].update({"Fever": [68, 72, 70, 71, 71], "Cough": [52, 55, 53, 54, 54], "Fatigue": [48, 50, 49, 51, 51], "Shortness of breath": [12, 18, 23, 22, 22], "Vomiting": [20, 21, 19, 20, 20], "Diarrhoea": [25, 27, 26, 27, 27], "Confusion": [4, 6, 9, 10, 10], "Bleeding": [1, 2, 2, 2, 2]})
 AGE_GROUPS = ["0–5", "6–15", "16–25", "26–35", "36–45", "46–55", "56–65", "66–75", "76–85", "86+"]
 
 MAP_PATH = Path(__file__).parent / "data" / "kajini_map.geojson"
@@ -106,6 +108,10 @@ UPDATE_DATA = {
 # Scores use the exercise rubric: -2 strongly negative to +2 strongly positive.
 # ============================================================
 MODEL_WEIGHTS = {"trust": 0.30, "coordination": 0.25, "healthcare_safety": 0.20, "misinformation": 0.15, "resources": 0.10}
+# Starting conditions for the exercise. These values are user-editable.
+INITIAL_HUMAN_CASES = 100
+INITIAL_HUMAN_DEATHS = 10
+
 DECISION_EFFECTS = {
     10: {"question": "How was early surveillance and healthcare-worker protection established?", "option_a": "Scenario A — Coordinated early action", "option_b": "Scenario B — Partial or fragmented action", "positive": {"Community trust": 1, "Coordination quality": 2, "Healthcare-worker safety": 1, "Misinformation pressure": -1, "Resource pressure": 0}, "negative": {"Community trust": -1, "Coordination quality": -1, "Healthcare-worker safety": -2, "Misinformation pressure": 1, "Resource pressure": 1}},
     20: {"question": "How did the response engage communities and support farmer cooperation?", "option_a": "Scenario A — Trust-building engagement", "option_b": "Scenario B — Limited community engagement", "positive": {"Community trust": 2, "Coordination quality": 1, "Healthcare-worker safety": 0, "Misinformation pressure": -1, "Resource pressure": 0}, "negative": {"Community trust": -2, "Coordination quality": -1, "Healthcare-worker safety": 0, "Misinformation pressure": 2, "Resource pressure": 1}},
@@ -148,7 +154,7 @@ def value_at_day(key, day):
     if key == "human_deaths":
         cumulative_cases = sum(daily_epidemic_cases(d) for d in range(1, int(day) + 1))
         mortality = max(0.04, 0.12 - 0.04 * context_score)
-        return round(cumulative_cases * mortality, 1)
+        return round(INITIAL_HUMAN_DEATHS + cumulative_cases * mortality, 1)
     if key == "cattle_deaths":
         daily_cattle = lambda target_day: 1 + 0.22 * daily_epidemic_cases(target_day) * (1 - 0.25 * context_score)
         return round(sum(daily_cattle(d) for d in range(1, int(day) + 1)), 1)
@@ -156,7 +162,7 @@ def value_at_day(key, day):
         # Hospital pressure follows current severe-case pressure, not the
         # cumulative case total, so it can rise and later decline.
         current_cases = daily_epidemic_cases(day)
-        capacity = 25 + current_cases * 1.15 - 12 * context_score
+        capacity = 88 + current_cases * 0.25 - 8 * context_score
         return round(max(0, min(100, capacity)), 1)
 
     value = float(pd.Series(HEALTH_HISTORY[key], index=HEALTH_HISTORY["days"]).reindex(range(0, SIMULATION_DAYS + 1)).interpolate().loc[min(day, SIMULATION_DAYS)])
@@ -181,7 +187,7 @@ def daily_cases_chart(day=0):
 
 
 def cumulative_cases(day=0):
-    return round(sum(value_at_day("daily_cases", d) for d in range(1, max(int(day), 1) + 1)))
+    return round(INITIAL_HUMAN_CASES + sum(value_at_day("daily_cases", d) for d in range(1, int(day) + 1)))
 
 
 def deaths_chart(day=0):
@@ -253,7 +259,7 @@ def value_at_day_from_history(values, day):
 
 def clinical_mortality_chart(day=0):
     current_day = max(day, 1)
-    cumulative_cases = sum(value_at_day("daily_cases", d) for d in range(1, current_day + 1))
+    cumulative_cases = INITIAL_HUMAN_CASES + sum(value_at_day("daily_cases", d) for d in range(1, current_day + 1))
     cumulative_deaths = value_at_day("human_deaths", current_day)
     rate = round(cumulative_deaths / cumulative_cases * 100, 1) if cumulative_cases else 0
     fig = go.Figure(go.Indicator(mode="number", value=rate, number={"suffix":"%", "font":{"size":52, "color":"#ef4444"}}, title={"text":f"Cumulative mortality rate · Day {current_day}", "font":{"size":13}}, domain={"x":[0,1], "y":[0,1]}))
@@ -276,12 +282,14 @@ def interpolate_items(start, end, fraction):
 def state_at_day(day):
     """Return a linearly interpolated state for the 30-day exercise."""
     day = min(max(day, 0), SIMULATION_DAYS)
-    right_index = next((i for i, update_day in enumerate(UPDATE_DAYS) if update_day >= day), 3)
+    right_index = next((i for i, update_day in enumerate(UPDATE_DAYS) if update_day >= day), len(UPDATE_DAYS) - 1)
     left_index = max(right_index - 1, 0)
     left_day, right_day = UPDATE_DAYS[left_index], UPDATE_DAYS[right_index]
     fraction = 0 if left_day == right_day else (day - left_day) / (right_day - left_day)
-    base = UPDATE_DATA[left_index + 1]
-    target = UPDATE_DATA[right_index + 1]
+    # UPDATE_DATA describes the four session states, while UPDATE_DAYS has
+    # five boundaries. Keep the final boundary on the final session state.
+    base = UPDATE_DATA[min(left_index + 1, max(UPDATE_DATA))]
+    target = UPDATE_DATA[min(right_index + 1, max(UPDATE_DATA))]
     return {
         "response": interpolate_items(base["response"], target["response"], fraction),
         "pressure": interpolate_items(base["pressure"], target["pressure"], fraction),
@@ -338,6 +346,9 @@ server = app.server
 # for backward compatibility and is hidden by CSS below.
 def enhanced_layout():
     base = app_layout()
+    topbar = base.children[0]
+    topbar.children[1].children.append(html.Button("⚙ Facilitator controls", id="facilitator-toggle", className="facilitator-toggle", n_clicks=0))
+    topbar.children[1].children.append(html.Button("Pause simulation", id="simulation-toggle", className="simulation-toggle", n_clicks=0))
     content = base.children[1]
     middle_panel = content.children[1]
     middle_panel.className = "middle-panel"
@@ -347,8 +358,8 @@ def enhanced_layout():
     for index, factor in enumerate(SLIDER_FACTORS):
         mark_style = {"color":"#ffffff", "fontSize":"10px", "fontWeight":"400", "whiteSpace":"nowrap"}
         context_body.children.append(html.Div([html.Div(factor, className="factor-label"), dcc.Slider(id=f"factor-slider-{index}", min=-1, max=1, step=0.5, value=0, marks={-1: {"label":"Negative", "style":mark_style}, 0: {"label":"Neutral", "style":mark_style}, 1: {"label":"Positive", "style":mark_style}}, tooltip={"placement":"bottom", "always_visible":False})], className="factor-slider"))
-    context_panel = html.Div([html.H2("Context"), context_body], className="context-panel")
-    content.children = [content.children[0], middle_panel, context_panel]
+    context_panel = html.Div([html.H2("Context"), context_body], id="context-panel", className="context-panel facilitator-drawer hidden")
+    content.children = [content.children[0], middle_panel]
     clock_marks = {UPDATE_DAYS[0]: "Start", UPDATE_DAYS[1]: "Update 2", UPDATE_DAYS[2]: "Update 3", UPDATE_DAYS[3]: "Final"}
     base.children.append(html.Div([
         html.Div([html.Label("Simulation clock — one day every 10 seconds"), dcc.Slider(0, SIMULATION_DAYS, 1, value=0, marks=clock_marks, id="decision-slider")], className="clock-control"),
@@ -356,14 +367,34 @@ def enhanced_layout():
             dcc.Interval(id="decision-clock", interval=DAY_INTERVAL_MS, n_intervals=0),
     ], className="controls decision-controls"))
     base.children[-1].children[0].children.insert(0, html.Div(f"Simulation clock: one day every {DAY_INTERVAL_MS / 1000:g} seconds", className="clock-label"))
+    base.children.append(context_panel)
+    base.children.append(dcc.Store(id="simulation-paused", data=False))
     return base
 app.layout = enhanced_layout()
 
 
-@app.callback(Output("decision-clock", "disabled"), Output("decision-question", "children"), Output("decision-status", "children"), Output("decision-slider", "value"), Output("decision-control", "className"), Output("decision-choice", "options"), Input("decision-clock", "n_intervals"), Input("decision-submit", "n_clicks"), State("decision-choice", "value"), State("decision-slider", "value"))
-def decision_gate(n_intervals, n_clicks, choice, day):
+@app.callback(Output("context-panel", "className"), Input("facilitator-toggle", "n_clicks"))
+def toggle_facilitator_controls(n_clicks):
+    return "context-panel facilitator-drawer" if (n_clicks or 0) % 2 else "context-panel facilitator-drawer hidden"
+
+
+@app.callback(Output("simulation-paused", "data"), Output("simulation-toggle", "children"), Input("simulation-toggle", "n_clicks"), Input("decision-clock", "n_intervals"), State("simulation-paused", "data"))
+def toggle_simulation(n_clicks, n_intervals, currently_paused):
+    triggered = ctx.triggered_id
+    paused = bool(currently_paused)
+    if triggered == "simulation-toggle":
+        paused = not paused
+    elif ENABLE_STAGE_PAUSES and n_intervals in PAUSE_DAYS:
+        paused = True
+    return paused, "Continue simulation" if paused else "Pause simulation"
+
+
+@app.callback(Output("decision-clock", "disabled"), Output("decision-question", "children"), Output("decision-status", "children"), Output("decision-slider", "value"), Output("decision-control", "className"), Output("decision-choice", "options"), Input("decision-clock", "n_intervals"), Input("decision-submit", "n_clicks"), Input("simulation-paused", "data"), Input("simulation-toggle", "n_clicks"), State("decision-choice", "value"), State("decision-slider", "value"))
+def decision_gate(n_intervals, n_clicks, simulation_paused, toggle_clicks, choice, day):
     triggered = ctx.triggered_id
     day = min(int(n_intervals), SIMULATION_DAYS)
+    if simulation_paused and triggered == "simulation-toggle":
+        return True, "", "", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
     if not ENABLE_STAGE_PAUSES:
         return False, "", "", day, "decision-control hidden", [{"label":"Scenario A", "value":"positive"}, {"label":"Scenario B", "value":"negative"}]
     if triggered == "decision-submit" and day in DECISION_EFFECTS:
@@ -385,7 +416,8 @@ def update_dashboard(n_intervals, *factor_values):
         CURRENT_SLIDER_FACTORS[factor] = value or 0
     day = min(int(n_intervals), SIMULATION_DAYS)
     state = state_at_day(day)
-    stage = min(day // 10 + 1, 4)
+    # Derive the displayed session from the configurable stage boundaries.
+    stage = min(max(sum(day >= boundary for boundary in UPDATE_DAYS), 1), len(CONFIG["rounds"]))
     return (map_figure(day), daily_cases_chart(day), deaths_chart(day), positivity_chart(day), cattle_chart(day), capacity_gauge(day), clinical_pyramid(day), symptom_chart(day), clinical_mortality_chart(day), f"DAY {day} — ROUND {stage}: {CONFIG['rounds'][stage-1].upper()}", day, f"Total human cases: {cumulative_cases(day):,}")
 
 
